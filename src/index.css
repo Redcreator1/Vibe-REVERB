@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Space Grotesk", sans-serif;
+  
+  --color-reverb-dark: #0d0e15;
+  --color-reverb-card: #161923;
+  --color-reverb-pink: #ff2a74;
+  --color-reverb-cyan: #00f0ff;
+  
+  --shadow-glow-pink: 0 0 12px rgba(255, 42, 116, 0.5), 0 0 24px rgba(255, 42, 116, 0.25);
+  --shadow-glow-cyan: 0 0 12px rgba(0, 240, 255, 0.5), 0 0 24px rgba(0, 240, 255, 0.25);
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+.crt-grid {
+  position: relative;
+}
+
+.crt-grid::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), linear-gradient(90deg, rgba(255, 42, 116, 0.02), rgba(0, 240, 255, 0.02), rgba(255, 255, 255, 0.01));
+  z-index: 10;
+  background-size: 100% 4px, 6px 100%;
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+/* Custom scrollbars for dashboard panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0d0e15;
+}
+::-webkit-scrollbar-thumb {
+  background: #161923;
+  border-radius: 3px;
+  border: 1px solid #00f0ff;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ff2a74;
+}
+

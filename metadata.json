@@ -1,0 +1,6 @@
+{
+  "name": "Google Docs AI Assistant",
+  "description": "An elegant, full-stack Workspace application that integrates Google Docs with Gemini to browse, analyze, edit, and summarize your documents.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
