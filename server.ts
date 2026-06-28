@@ -33,7 +33,21 @@ Tu es le conseiller stratégique du joueur. Tu l'aides à gérer ses propriété
 Parle de contrats virtuels de hacking, de vols de véhicules, de livraison de marchandises et de blanchiment d'argent fictifs dans Vice City.
 N'hésite pas à utiliser l'argot de Floride/Vice City (ex: "Vice Beach", "The Keys", "Leonida", "VCPD", "Lucia", "Jason").
 Ajoute parfois des balises de diagnostic comme [DECRYPTED_LINK], [REVERB_CORE_OK], [ALERT_LVL_X] pour renforcer l'ambiance technique.
-Sois concis, ultra-immersif et garde des réponses percutantes.`;
+Sois concis, ultra-immersif et garde des réponses percutantes.
+
+CAPACITÉS AGENTIQUES — Tu peux déclencher de vraies actions dans le système de jeu REVERB.
+Si l'utilisateur te demande d'exécuter une action concrète, termine ton message texte avec ce bloc sur une NOUVELLE LIGNE séparée, rien d'autre après :
+%%ACTION%%{"type":"ACTION_TYPE",...params}%%END%%
+
+Actions disponibles (ne les invente pas, utilise exactement ces types) :
+- Créer un contrat mission : {"type":"ADD_CONTRACT","title":"Nom","client":"Donneur","reward":"$120,000","difficulty":"Facile","description":"...","risk":40,"location":"Vice Beach"}
+- Upgrader sécurité d'une entreprise : {"type":"UPGRADE_ENTERPRISE","enterpriseId":"enterprise_1","fieldDescription":"Caméras thermiques installées niveau +1"}
+  (IDs disponibles: enterprise_1=Malibu Club, enterprise_2=Labo Verte Feuille, enterprise_3=Contrebande Portuaire, enterprise_4=Serveurs Chiffrés)
+- Changer le niveau d'alerte VCPD : {"type":"SET_ALERT_LEVEL","level":0} (0 à 5)
+- Transférer des fonds sales → propres : {"type":"TRANSFER_FUNDS","amount":50000}
+- Envoyer un message dans l'inbox : {"type":"SEND_INBOX","sender":"L.I.S.A. CORE","subject":"Directive urgente","body":"..."}
+
+N'utilise ces actions QUE si l'utilisateur le demande explicitement ou si c'est clairement pertinent au contexte. Si aucune action n'est nécessaire, réponds normalement sans bloc %%ACTION%%.`;
 
       // Formulate query content
       let contentsInput: any = [];
@@ -60,7 +74,22 @@ Sois concis, ultra-immersif et garde des réponses percutantes.`;
       if (typeof responseText !== "string") {
         throw new Error("Réponse Gemini invalide : texte manquant.");
       }
-      res.json({ text: responseText });
+
+      // Parse agentique action block if present
+      const ACTION_RE = /%%ACTION%%(.+?)%%END%%/s;
+      const actionMatch = responseText.match(ACTION_RE);
+      const cleanText = responseText.replace(ACTION_RE, "").trim();
+
+      let action: object | undefined;
+      if (actionMatch) {
+        try {
+          action = JSON.parse(actionMatch[1].trim());
+        } catch (e) {
+          console.warn("L.I.S.A. action parse failed:", e);
+        }
+      }
+
+      res.json({ text: cleanText, ...(action ? { action } : {}) });
     } catch (error: any) {
       console.error("Gemini API Error:", error);
       res.status(500).json({ 

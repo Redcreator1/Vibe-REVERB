@@ -398,6 +398,9 @@ export default function App() {
                 gameState={state}
                 onAddChatMessage={addChatMessage}
                 onAddContract={addContract}
+                onUpdateEmpire={updateEmpire}
+                onUpdateTelemetry={updateTelemetry}
+                onAddInboxMessage={addInboxMessage}
               />
             )}
 
