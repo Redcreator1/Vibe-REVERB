@@ -1,12 +1,24 @@
 import { useState, useRef, useEffect, FormEvent } from "react";
-import { GameState, ChatMessage, Contract } from "../types";
-import { Terminal, Send, HelpCircle, Loader, ShieldAlert, Cpu, Award, Navigation, Plus, Zap } from "lucide-react";
+import { GameState, ChatMessage, Contract, LISAAction, LISAResponse } from "../types";
+import { Terminal, Send, Loader, Cpu, Plus, Zap, ShieldCheck, AlertTriangle, ArrowRightLeft, Mail } from "lucide-react";
 
 interface SecureAIProps {
   gameState: GameState;
   onAddChatMessage: (msg: ChatMessage) => void;
   onAddContract: (contract: Contract) => void;
+  onUpdateEmpire: (empire: GameState["empire"]) => void;
+  onUpdateTelemetry: (telemetry: GameState["telemetry"]) => void;
+  onAddInboxMessage: (sender: string, avatar: string, subject: string, body: string, actionable?: boolean) => void;
 }
+
+// Visual feedback per action type
+const ACTION_LABELS: Record<string, { icon: string; label: string; color: string }> = {
+  ADD_CONTRACT:        { icon: "⚔️",  label: "CONTRAT AJOUTÉ AU DECK",        color: "text-emerald-400" },
+  UPGRADE_ENTERPRISE:  { icon: "🔒",  label: "SÉCURITÉ ENTERPRISE UPGRADÉE",  color: "text-reverb-cyan" },
+  SET_ALERT_LEVEL:     { icon: "🚨",  label: "NIVEAU D'ALERTE VCPD MODIFIÉ",  color: "text-reverb-pink" },
+  TRANSFER_FUNDS:      { icon: "💸",  label: "TRANSFERT DE FONDS EFFECTUÉ",   color: "text-emerald-400" },
+  SEND_INBOX:          { icon: "📨",  label: "MESSAGE ENVOYÉ DANS L'INBOX",   color: "text-reverb-cyan" },
+};
 
 const AI_LOADING_PHASES = [
   "DECRYPTING VCPD DISPATCH FREQUENCIES...",
@@ -19,13 +31,17 @@ const AI_LOADING_PHASES = [
 export default function SecureAI({
   gameState,
   onAddChatMessage,
-  onAddContract
+  onAddContract,
+  onUpdateEmpire,
+  onUpdateTelemetry,
+  onAddInboxMessage,
 }: SecureAIProps) {
   const { chatHistory } = gameState;
   const [userInput, setUserInput] = useState<string>("");
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [loadingPhase, setLoadingPhase] = useState<string>(AI_LOADING_PHASES[0]);
   const [isGeneratingContract, setIsGeneratingContract] = useState<boolean>(false);
+  const [lastAction, setLastAction] = useState<LISAAction | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // Auto scroll to bottom of chat
@@ -49,6 +65,45 @@ export default function SecureAI({
 
     return () => clearInterval(interval);
   }, [isTyping, isGeneratingContract]);
+
+  // Execute a L.I.S.A. agentique action on the game state
+  const executeAction = (action: LISAAction) => {
+    setLastAction(action);
+    setTimeout(() => setLastAction(null), 4000);
+
+    switch (action.type) {
+      case "ADD_CONTRACT": {
+        const { type: _, ...contractFields } = action;
+        onAddContract(contractFields as Contract);
+        break;
+      }
+      case "UPGRADE_ENTERPRISE": {
+        const updated = gameState.empire.enterprises.map(e =>
+          e.id === action.enterpriseId
+            ? { ...e, securityLevel: Math.min(e.securityLevel + 1, 5) }
+            : e
+        );
+        onUpdateEmpire({ ...gameState.empire, enterprises: updated });
+        break;
+      }
+      case "SET_ALERT_LEVEL": {
+        onUpdateTelemetry({ ...gameState.telemetry, searchLevel: Math.max(0, Math.min(5, action.level)) });
+        break;
+      }
+      case "TRANSFER_FUNDS": {
+        const tax = Math.floor(action.amount * 0.1);
+        const net = action.amount - tax;
+        const dirty = Math.max(gameState.empire.cashDirty - action.amount, 0);
+        const clean = gameState.empire.cashClean + net;
+        onUpdateEmpire({ ...gameState.empire, cashDirty: dirty, cashClean: clean });
+        break;
+      }
+      case "SEND_INBOX": {
+        onAddInboxMessage(action.sender, "🤖", action.subject, action.body, false);
+        break;
+      }
+    }
+  };
 
   // Handle message sending
   const sendMessageToLISA = async (e: FormEvent) => {
@@ -82,8 +137,8 @@ export default function SecureAI({
         })
       });
 
-      const data = await response.json();
-      
+      const data: LISAResponse & { error?: string } = await response.json();
+
       if (response.ok && data.text) {
         onAddChatMessage({
           id: `lisa_${Date.now()}`,
@@ -91,6 +146,9 @@ export default function SecureAI({
           content: data.text,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
+        if (data.action) {
+          executeAction(data.action);
+        }
       } else {
         throw new Error(data.error || "Réponse vide de L.I.S.A.");
       }
@@ -179,18 +237,38 @@ export default function SecureAI({
 
           <div className="space-y-3 font-mono text-[11px] text-gray-400">
             <p className="bg-reverb-dark/80 p-2.5 rounded border border-gray-800 leading-relaxed">
-              L.I.S.A. est connectée en temps réel au noyau de Vice City. Posez-lui des questions sur vos blanchiments, ou demandez-lui de préparer un contrat.
+              L.I.S.A. est connectée en temps réel au noyau de Vice City. Elle peut désormais <span className="text-reverb-cyan font-bold">exécuter des actions</span> dans votre empire.
             </p>
 
-            <div className="space-y-1.5 pt-2">
-              <span className="text-[10px] text-gray-500 block">OPTIONS DE SÉCURITÉ</span>
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[10px] text-gray-500 block uppercase tracking-wider">Commandes agentiques</span>
+              {[
+                { icon: <ShieldCheck className="w-3 h-3 text-reverb-cyan" />, cmd: '"Upgrade la sécurité du Malibu Club"' },
+                { icon: <AlertTriangle className="w-3 h-3 text-reverb-pink" />, cmd: '"Baisse mon niveau d\'alerte à 0"' },
+                { icon: <ArrowRightLeft className="w-3 h-3 text-emerald-400" />, cmd: '"Transfère $50,000 sales en propre"' },
+                { icon: <Mail className="w-3 h-3 text-reverb-cyan" />, cmd: '"Envoie un message d\'alerte dans l\'inbox"' },
+                { icon: <Plus className="w-3 h-3 text-reverb-pink" />, cmd: '"Crée un contrat à Vice Beach"' },
+              ].map(({ icon, cmd }) => (
+                <button
+                  key={cmd}
+                  onClick={() => setUserInput(cmd.replace(/"/g, ""))}
+                  className="w-full text-left flex items-start gap-1.5 p-1.5 bg-reverb-dark/40 border border-gray-800 hover:border-reverb-cyan/30 rounded transition cursor-pointer"
+                >
+                  <span className="mt-0.5 shrink-0">{icon}</span>
+                  <span className="leading-tight text-[10px]">{cmd}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[10px] text-gray-500 block">STATUT SYSTÈME</span>
               <div className="flex items-center justify-between p-1.5 bg-reverb-dark/40 border border-gray-800 rounded">
                 <span>RÉSEAU COUPLÉ</span>
                 <span className="text-reverb-cyan font-bold">ACTIF</span>
               </div>
               <div className="flex items-center justify-between p-1.5 bg-reverb-dark/40 border border-gray-800 rounded">
-                <span>REVERB CODES</span>
-                <span className="text-reverb-pink font-bold">CHIFFRÉ</span>
+                <span>MODE AGENTIQUE</span>
+                <span className="text-reverb-pink font-bold">ON</span>
               </div>
             </div>
           </div>
@@ -294,6 +372,17 @@ export default function SecureAI({
 
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Agentique action feedback banner */}
+        {lastAction && (
+          <div className="mx-3 mb-1 px-3 py-2 bg-reverb-cyan/10 border border-reverb-cyan/30 rounded font-mono text-[11px] text-reverb-cyan flex items-center gap-2 animate-pulse">
+            <Zap className="w-3.5 h-3.5 shrink-0" />
+            <span>
+              <span className="font-bold">ACTION L.I.S.A. EXÉCUTÉE</span> —{" "}
+              {ACTION_LABELS[lastAction.type]?.icon} {ACTION_LABELS[lastAction.type]?.label}
+            </span>
+          </div>
+        )}
 
         {/* Message Input Form */}
         <form onSubmit={sendMessageToLISA} className="p-3 bg-reverb-card border-t border-gray-800 flex gap-2">

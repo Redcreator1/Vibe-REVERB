@@ -96,3 +96,16 @@ export interface BotCitizen {
   status: string;
 }
 
+// Agentique L.I.S.A. — actions qu'elle peut déclencher dans le jeu
+export type LISAAction =
+  | { type: "ADD_CONTRACT"; title: string; client: string; reward: string; difficulty: "Facile" | "Moyen" | "Difficile" | "Extrême"; description: string; risk: number; location: string }
+  | { type: "UPGRADE_ENTERPRISE"; enterpriseId: string; fieldDescription: string }
+  | { type: "SET_ALERT_LEVEL"; level: number }
+  | { type: "TRANSFER_FUNDS"; amount: number }
+  | { type: "SEND_INBOX"; sender: string; subject: string; body: string };
+
+export interface LISAResponse {
+  text: string;
+  action?: LISAAction;
+}
+

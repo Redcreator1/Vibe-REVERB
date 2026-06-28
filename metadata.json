@@ -1,6 +1,6 @@
 {
-  "name": "Google Docs AI Assistant",
-  "description": "An elegant, full-stack Workspace application that integrates Google Docs with Gemini to browse, analyze, edit, and summarize your documents.",
+  "name": "Vibe-REVERB",
+  "description": "Application companion GTA 6 — simulateur d'empire criminel dans Vice City avec IA L.I.S.A. intégrée (Gemini)",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

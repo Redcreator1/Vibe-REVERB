@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { GameState, Telemetry, ChatMessage, Contract, NPCMessage } from "./types";
 import { INITIAL_STATE } from "./data/mockData";
+import { usePersistedState } from "./hooks/usePersistedState";
 import LiveTelemetry from "./components/LiveTelemetry";
 import OfflineBroker from "./components/OfflineBroker";
 import SecureAI from "./components/SecureAI";
@@ -26,8 +27,41 @@ import {
   Server
 } from "lucide-react";
 
+/** Fields of GameState that are persisted to localStorage */
+type PersistedGameState = Pick<GameState, "isOnline" | "telemetry" | "empire" | "contracts">;
+
+const PERSIST_KEY = "vibe-reverb-gamestate";
+
+const initialPersisted: PersistedGameState = {
+  isOnline: INITIAL_STATE.isOnline,
+  telemetry: INITIAL_STATE.telemetry,
+  empire: INITIAL_STATE.empire,
+  contracts: INITIAL_STATE.contracts,
+};
+
 export default function App() {
-  const [state, setState] = useState<GameState>(INITIAL_STATE);
+  const [persisted, setPersisted] = usePersistedState<PersistedGameState>(PERSIST_KEY, initialPersisted);
+
+  // Non-persisted runtime state (chat + inbox messages)
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>(INITIAL_STATE.chatHistory);
+  const [messages, setMessages] = useState(INITIAL_STATE.messages);
+
+  // Unified read-only view for components that expect GameState
+  const state: GameState = { ...persisted, chatHistory, messages };
+
+  // Proxy setState to split persisted vs non-persisted fields
+  const setState = (updater: GameState | ((prev: GameState) => GameState)) => {
+    const next = typeof updater === "function" ? updater(state) : updater;
+    setPersisted({
+      isOnline: next.isOnline,
+      telemetry: next.telemetry,
+      empire: next.empire,
+      contracts: next.contracts,
+    });
+    setChatHistory(next.chatHistory);
+    setMessages(next.messages);
+  };
+
   const [activeTab, setActiveTab] = useState<"telemetry" | "empire" | "lisa" | "inbox" | "sandbox">("sandbox");
   
   // Simulation heist status
@@ -364,6 +398,9 @@ export default function App() {
                 gameState={state}
                 onAddChatMessage={addChatMessage}
                 onAddContract={addContract}
+                onUpdateEmpire={updateEmpire}
+                onUpdateTelemetry={updateTelemetry}
+                onAddInboxMessage={addInboxMessage}
               />
             )}
 
@@ -509,9 +546,19 @@ export default function App() {
           <p className="text-[10px]">
             © REVERB SYSTEM INC. TOUS DROITS RÉSERVÉS. CONSOLE DE JEU COMPAGNON IMMERSIF GTA 6.
           </p>
-          <div className="flex gap-4 text-[10px]">
+          <div className="flex gap-4 text-[10px] items-center">
             <a href="#" className="hover:text-reverb-cyan transition">LOGS TERMINAL</a>
             <a href="#" className="hover:text-reverb-pink transition">SECURE KEY</a>
+            <button
+              onClick={() => {
+                localStorage.removeItem(PERSIST_KEY);
+                window.location.reload();
+              }}
+              className="text-gray-600 hover:text-red-400 transition border border-gray-800 hover:border-red-900 px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider"
+              title="Effacer la sauvegarde locale"
+            >
+              RESET
+            </button>
           </div>
         </div>
       </footer>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { GameState, Enterprise, Contract } from "../types";
 import { DollarSign, ShieldAlert, Key, TrendingUp, AlertTriangle, Shield, CheckCircle, RefreshCw, Layers } from "lucide-react";
 
@@ -28,10 +28,24 @@ export default function OfflineBroker({
   const amountFactor = Math.min((launderingAmount / 150000) * 45, 45);
   const calculatedRisk = Math.round(securityFactor + amountFactor);
 
+  // Keep a stable ref to the latest empire state and callback so the interval
+  // reads current values without being listed as deps (which would re-register
+  // the interval on every tick whenever passive income updates the empire).
+  const empireRef = useRef(gameState.empire);
+  useEffect(() => {
+    empireRef.current = gameState.empire;
+  }, [gameState.empire]);
+
+  const onUpdateEmpireRef = useRef(onUpdateEmpire);
+  useEffect(() => {
+    onUpdateEmpireRef.current = onUpdateEmpire;
+  }, [onUpdateEmpire]);
+
   // Auto-generate passive pending cash for fun
   useEffect(() => {
     const timer = setInterval(() => {
-      const updatedEnterprises = enterprises.map(ent => {
+      const { enterprises: ents, cashDirty: cd, cashClean: cc, cryptoBalance: cb } = empireRef.current;
+      const updatedEnterprises = ents.map(ent => {
         if (ent.status !== "active") return ent;
         // Increase dirty stock and pending clean cash slightly
         const stockIncrease = Math.random() > 0.6 ? 1 : 0;
@@ -44,16 +58,16 @@ export default function OfflineBroker({
           cleanCashPending: ent.cleanCashPending + cashIncrease
         };
       });
-      onUpdateEmpire({
-        cashDirty,
-        cashClean,
-        cryptoBalance,
+      onUpdateEmpireRef.current({
+        cashDirty: cd,
+        cashClean: cc,
+        cryptoBalance: cb,
         enterprises: updatedEnterprises
       });
     }, 8000);
 
     return () => clearInterval(timer);
-  }, [enterprises, cashDirty, cashClean, cryptoBalance, onUpdateEmpire]);
+  }, []); // stable: reads empire via ref, no deps needed
 
   // Execute money laundering process
   const startLaundering = () => {
@@ -76,24 +90,6 @@ export default function OfflineBroker({
       cashDirty: cashDirty - launderingAmount
     });
   };
-
-  // Progress animation ticker
-  useEffect(() => {
-    if (!isLaundering) return;
-
-    const interval = setInterval(() => {
-      setLaunderingProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          completeLaundering();
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 300);
-
-    return () => clearInterval(interval);
-  }, [isLaundering]);
 
   const completeLaundering = () => {
     setIsLaundering(false);
@@ -153,6 +149,31 @@ export default function OfflineBroker({
       });
     }
   };
+
+  // Keep a stable ref to completeLaundering so the progress effect always
+  // calls the latest closure (with current calculatedRisk / launderingAmount).
+  const completeLaunderingRef = useRef(completeLaundering);
+  useEffect(() => {
+    completeLaunderingRef.current = completeLaundering;
+  });
+
+  // Progress animation ticker — only active while a laundering op is running
+  useEffect(() => {
+    if (!isLaundering) return;
+
+    const intervalId = setInterval(() => {
+      setLaunderingProgress(prev => Math.min(prev + 10, 100));
+    }, 300);
+
+    return () => clearInterval(intervalId);
+  }, [isLaundering]);
+
+  // Trigger completeLaundering exactly once when progress reaches 100
+  useEffect(() => {
+    if (isLaundering && launderingProgress >= 100) {
+      completeLaunderingRef.current();
+    }
+  }, [isLaundering, launderingProgress]);
 
   // Collect passive cash from a property
   const collectDividends = (entId: string) => {

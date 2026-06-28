@@ -26,27 +26,42 @@ export default function LiveTelemetry({
     { x: 450, y: 220, label: "Verte Feuille Lab", color: "#10b981" }
   ]);
 
+  // Keep stable refs to the latest telemetry and callback so the interval
+  // can read current values without being listed as deps (listing `telemetry`
+  // would re-register the interval on every tick, causing a memory leak).
+  const telemetryRef = useRef(telemetry);
+  useEffect(() => {
+    telemetryRef.current = telemetry;
+  }, [telemetry]);
+
+  const onUpdateTelemetryRef = useRef(onUpdateTelemetry);
+  useEffect(() => {
+    onUpdateTelemetryRef.current = onUpdateTelemetry;
+  }, [onUpdateTelemetry]);
+
   // Simulation loop for Telemetry data
   useEffect(() => {
     if (!isOnline) return;
 
     const interval = setInterval(() => {
+      const tel = telemetryRef.current;
+
       // Find template for maximums
       const currentVehicleTemplate = VEHICLE_TEMPLATES.find(
-        v => v.name === telemetry.vehicle
+        v => v.name === tel.vehicle
       ) || VEHICLE_TEMPLATES[0];
 
       // Jitter speed, rpm, coordinates
       const targetSpeed = Math.min(
-        Math.max(telemetry.speed + (Math.random() * 12 - 5.5), 10),
+        Math.max(tel.speed + (Math.random() * 12 - 5.5), 10),
         250
       );
-      
-      let newGear = telemetry.gear;
-      if (targetSpeed > telemetry.speed && telemetry.rpm > currentVehicleTemplate.rpmMax * 0.8) {
-        newGear = Math.min(telemetry.gear + 1, currentVehicleTemplate.gearMax);
-      } else if (targetSpeed < telemetry.speed && telemetry.rpm < currentVehicleTemplate.rpmMax * 0.4) {
-        newGear = Math.max(telemetry.gear - 1, 1);
+
+      let newGear = tel.gear;
+      if (targetSpeed > tel.speed && tel.rpm > currentVehicleTemplate.rpmMax * 0.8) {
+        newGear = Math.min(tel.gear + 1, currentVehicleTemplate.gearMax);
+      } else if (targetSpeed < tel.speed && tel.rpm < currentVehicleTemplate.rpmMax * 0.4) {
+        newGear = Math.max(tel.gear - 1, 1);
       }
 
       const ratio = targetSpeed / (currentVehicleTemplate.gearMax * 40);
@@ -59,9 +74,9 @@ export default function LiveTelemetry({
       );
 
       // Random slow motion drift across coordinates
-      let newLat = telemetry.latitude + (Math.random() * 2 - 1);
-      let newLng = telemetry.longitude + (Math.random() * 2 - 1);
-      
+      let newLat = tel.latitude + (Math.random() * 2 - 1);
+      let newLng = tel.longitude + (Math.random() * 2 - 1);
+
       // Keep boundaries in 500x500
       if (newLat < 50) newLat = 50;
       if (newLat > 450) newLat = 450;
@@ -69,13 +84,13 @@ export default function LiveTelemetry({
       if (newLng > 450) newLng = 450;
 
       // Random zone transition if near coordinates
-      let newZone = telemetry.zone;
+      let newZone = tel.zone;
       if (Math.random() < 0.05) {
         newZone = VICE_CITY_ZONES[Math.floor(Math.random() * VICE_CITY_ZONES.length)];
       }
 
-      onUpdateTelemetry({
-        ...telemetry,
+      onUpdateTelemetryRef.current({
+        ...tel,
         speed: Math.round(targetSpeed),
         rpm: Math.round(targetRpm),
         gear: newGear,
@@ -86,7 +101,7 @@ export default function LiveTelemetry({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isOnline, telemetry, onUpdateTelemetry]);
+  }, [isOnline]);
 
   // Canvas radar mapping animation
   useEffect(() => {
