@@ -1,0 +1,9 @@
+{
+  "comment": "Config Cloudflare Pages — frontend uniquement",
+  "build_command": "npm run build",
+  "build_output_directory": "dist",
+  "root_directory": "",
+  "environment_variables": {
+    "NODE_VERSION": "20"
+  }
+}
