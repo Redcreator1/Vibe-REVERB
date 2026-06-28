@@ -56,7 +56,11 @@ Sois concis, ultra-immersif et garde des réponses percutantes.`;
         }
       });
 
-      res.json({ text: response.text });
+      const responseText = response.text;
+      if (typeof responseText !== "string") {
+        throw new Error("Réponse Gemini invalide : texte manquant.");
+      }
+      res.json({ text: responseText });
     } catch (error: any) {
       console.error("Gemini API Error:", error);
       res.status(500).json({ 
@@ -92,7 +96,26 @@ Ne retourne absolument rien d'autre que du JSON.`;
         }
       });
 
-      const parsed = JSON.parse(response.text.trim());
+      const CONTRACT_REQUIRED_FIELDS = ["title", "client", "reward", "difficulty", "description", "risk", "location"];
+
+      let parsed: any;
+      try {
+        const rawText = response.text;
+        if (typeof rawText !== "string" || rawText.trim() === "") {
+          throw new Error("Réponse Gemini vide ou invalide.");
+        }
+        parsed = JSON.parse(rawText.trim());
+      } catch (parseError) {
+        console.error("Contract JSON parse error:", parseError);
+        throw parseError; // fall through to outer catch → fallback
+      }
+
+      const missingFields = CONTRACT_REQUIRED_FIELDS.filter(f => !(f in parsed));
+      if (missingFields.length > 0) {
+        console.warn("Contract response missing fields:", missingFields, "— using fallback");
+        throw new Error(`Champs manquants dans le contrat : ${missingFields.join(", ")}`);
+      }
+
       res.json(parsed);
     } catch (error) {
       console.error("Contract generator error:", error);
