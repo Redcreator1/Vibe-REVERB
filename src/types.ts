@@ -61,7 +61,7 @@ export interface ChatMessage {
 }
 
 export interface GameState {
-  isOnline: boolean; // Sync status with the simulated game server
+  isOnline: boolean;
   telemetry: Telemetry;
   empire: {
     cashDirty: number;
@@ -96,7 +96,6 @@ export interface BotCitizen {
   status: string;
 }
 
-// Agentique L.I.S.A. — actions qu'elle peut déclencher dans le jeu
 export type LISAAction =
   | { type: "ADD_CONTRACT"; title: string; client: string; reward: string; difficulty: "Facile" | "Moyen" | "Difficile" | "Extrême"; description: string; risk: number; location: string }
   | { type: "UPGRADE_ENTERPRISE"; enterpriseId: string; fieldDescription: string }
@@ -108,4 +107,3 @@ export interface LISAResponse {
   text: string;
   action?: LISAAction;
 }
-

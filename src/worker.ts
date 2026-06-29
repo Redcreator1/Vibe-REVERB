@@ -85,12 +85,10 @@ export default {
       return new Response(null, { headers: corsHeaders() });
     }
 
-    // Health check
     if (url.pathname === "/" || url.pathname === "") {
       return json({ status: "REVERB CORE ONLINE", lisa: "v2.0-agentique" });
     }
 
-    // POST /api/broker — L.I.S.A. chat
     if (url.pathname === "/api/broker" && request.method === "POST") {
       try {
         const { message, history } = await request.json() as {
@@ -129,7 +127,6 @@ export default {
       }
     }
 
-    // POST /api/contracts/generate
     if (url.pathname === "/api/contracts/generate" && request.method === "POST") {
       try {
         const { empireStats } = await request.json() as { empireStats: unknown };
