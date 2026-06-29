@@ -28,6 +28,8 @@ const AI_LOADING_PHASES = [
   "ESTABLISHING CRYPTOGRAPHIC BROKER SYNAPSE..."
 ];
 
+const WORKER_URL = "https://reverb01.mindsetredcom.workers.dev";
+
 export default function SecureAI({
   gameState,
   onAddChatMessage,
@@ -44,7 +46,6 @@ export default function SecureAI({
   const [lastAction, setLastAction] = useState<LISAAction | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Auto scroll to bottom of chat
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -53,20 +54,16 @@ export default function SecureAI({
     scrollToBottom();
   }, [chatHistory, isTyping]);
 
-  // Rotate loading subtexts for immersion
   useEffect(() => {
     if (!isTyping && !isGeneratingContract) return;
-
     let index = 0;
     const interval = setInterval(() => {
       index = (index + 1) % AI_LOADING_PHASES.length;
       setLoadingPhase(AI_LOADING_PHASES[index]);
     }, 1500);
-
     return () => clearInterval(interval);
   }, [isTyping, isGeneratingContract]);
 
-  // Execute a L.I.S.A. agentique action on the game state
   const executeAction = (action: LISAAction) => {
     setLastAction(action);
     setTimeout(() => setLastAction(null), 4000);
@@ -105,7 +102,6 @@ export default function SecureAI({
     }
   };
 
-  // Handle message sending
   const sendMessageToLISA = async (e: FormEvent) => {
     e.preventDefault();
     if (!userInput.trim() || isTyping) return;
@@ -123,17 +119,12 @@ export default function SecureAI({
     setIsTyping(true);
 
     try {
-      // Send chat history and current user input to backend
-      const response = await fetch("/api/broker", {
+      const response = await fetch(`${WORKER_URL}/api/broker`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: textToSend,
-          // format chat history for Gemini API
-          history: chatHistory.map(m => ({
-            role: m.role,
-            content: m.content
-          }))
+          history: chatHistory.map(m => ({ role: m.role, content: m.content }))
         })
       });
 
@@ -165,13 +156,12 @@ export default function SecureAI({
     }
   };
 
-  // Generate a custom crime contract using Gemini API
   const generateBespokeContract = async () => {
     if (isGeneratingContract) return;
     setIsGeneratingContract(true);
 
     try {
-      const response = await fetch("/api/contracts/generate", {
+      const response = await fetch(`${WORKER_URL}/api/contracts/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -187,8 +177,6 @@ export default function SecureAI({
 
       if (response.ok && data.title) {
         onAddContract(data as Contract);
-        
-        // Feed dialogue notification from L.I.S.A. in the chat logs
         onAddChatMessage({
           id: `lisa_gen_${Date.now()}`,
           role: "assistant",
@@ -200,7 +188,6 @@ export default function SecureAI({
       }
     } catch (err) {
       console.error(err);
-      // Create a fallback contract
       const fallback: Contract = {
         title: "Incursion Portuaire Privée",
         client: "L.I.S.A. Core",
@@ -224,7 +211,6 @@ export default function SecureAI({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6" id="secure-ai-module">
-      {/* Sidebar: AI controls and parameters */}
       <div className="lg:col-span-1 p-5 bg-reverb-card border border-reverb-cyan/10 rounded-lg flex flex-col justify-between space-y-6">
         <div className="space-y-4">
           <div className="flex items-center space-x-2 border-b border-reverb-cyan/10 pb-3">
@@ -274,7 +260,6 @@ export default function SecureAI({
           </div>
         </div>
 
-        {/* Generate contract trigger */}
         <div className="space-y-3 pt-4 border-t border-gray-900">
           <button
             onClick={generateBespokeContract}
@@ -286,13 +271,9 @@ export default function SecureAI({
             }`}
           >
             {isGeneratingContract ? (
-              <>
-                <Loader className="w-3.5 h-3.5 animate-spin" /> GÉNÉRATION...
-              </>
+              <><Loader className="w-3.5 h-3.5 animate-spin" /> GÉNÉRATION...</>
             ) : (
-              <>
-                <Plus className="w-4 h-4" /> Contrat Spécial AI
-              </>
+              <><Plus className="w-4 h-4" /> Contrat Spécial AI</>
             )}
           </button>
           <p className="text-[9px] font-mono text-center text-gray-500 leading-normal">
@@ -301,9 +282,7 @@ export default function SecureAI({
         </div>
       </div>
 
-      {/* Main Terminal Chat Interface */}
       <div className="lg:col-span-3 bg-reverb-dark border border-reverb-cyan/20 rounded-lg flex flex-col h-[480px]">
-        {/* Terminal Header */}
         <div className="p-3 bg-reverb-card border-b border-reverb-cyan/25 flex items-center justify-between font-mono text-xs">
           <div className="flex items-center space-x-2 text-reverb-cyan">
             <Terminal className="w-4 h-4" />
@@ -316,27 +295,16 @@ export default function SecureAI({
           </div>
         </div>
 
-        {/* Chat Log Panel */}
         <div className="flex-grow overflow-y-auto p-4 space-y-4">
           {chatHistory.map((msg) => {
             const isAI = msg.role === "assistant";
             return (
-              <div
-                key={msg.id}
-                className={`flex flex-col max-w-[85%] ${
-                  isAI ? "self-start" : "self-end ml-auto"
-                }`}
-              >
-                {/* Sender badge */}
+              <div key={msg.id} className={`flex flex-col max-w-[85%] ${isAI ? "self-start" : "self-end ml-auto"}`}>
                 <span className={`text-[10px] font-mono mb-1 ${isAI ? "text-reverb-cyan" : "text-reverb-pink text-right"}`}>
                   {isAI ? "🤖 L.I.S.A. BROKER" : "👤 VOUS (CHEF)"} • {msg.timestamp}
                 </span>
-
-                {/* Bubble content */}
                 <div className={`p-3.5 rounded-lg text-xs leading-relaxed font-mono ${
-                  isAI
-                    ? "bg-reverb-card border border-reverb-cyan/20 text-white whitespace-pre-line"
-                    : "bg-reverb-pink text-white rounded-br-none"
+                  isAI ? "bg-reverb-card border border-reverb-cyan/20 text-white whitespace-pre-line" : "bg-reverb-pink text-white rounded-br-none"
                 }`}>
                   {msg.content}
                 </div>
@@ -344,12 +312,9 @@ export default function SecureAI({
             );
           })}
 
-          {/* Typing Loading HUD */}
           {isTyping && (
             <div className="flex flex-col max-w-[80%] self-start space-y-1.5 animate-pulse">
-              <span className="text-[10px] font-mono text-reverb-cyan">
-                🤖 L.I.S.A. BROKER • RECHERCHE DE DONNÉES...
-              </span>
+              <span className="text-[10px] font-mono text-reverb-cyan">🤖 L.I.S.A. BROKER • RECHERCHE DE DONNÉES...</span>
               <div className="bg-reverb-card border border-reverb-cyan/30 p-4 rounded-lg font-mono text-xs text-reverb-cyan flex items-center gap-3">
                 <Loader className="w-4 h-4 animate-spin text-reverb-cyan" />
                 <span>{loadingPhase}</span>
@@ -357,12 +322,9 @@ export default function SecureAI({
             </div>
           )}
 
-          {/* Generating contract simulation subtext */}
           {isGeneratingContract && (
             <div className="flex flex-col max-w-[80%] self-start space-y-1.5 animate-pulse">
-              <span className="text-[10px] font-mono text-reverb-cyan">
-                🤖 L.I.S.A. BROKER • RE-CALCUL STRATÉGIQUE...
-              </span>
+              <span className="text-[10px] font-mono text-reverb-cyan">🤖 L.I.S.A. BROKER • RE-CALCUL STRATÉGIQUE...</span>
               <div className="bg-reverb-card border border-reverb-cyan/30 p-4 rounded-lg font-mono text-xs text-reverb-cyan flex items-center gap-3">
                 <Loader className="w-4 h-4 animate-spin text-reverb-cyan" />
                 <span>{loadingPhase}</span>
@@ -373,7 +335,6 @@ export default function SecureAI({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Agentique action feedback banner */}
         {lastAction && (
           <div className="mx-3 mb-1 px-3 py-2 bg-reverb-cyan/10 border border-reverb-cyan/30 rounded font-mono text-[11px] text-reverb-cyan flex items-center gap-2 animate-pulse">
             <Zap className="w-3.5 h-3.5 shrink-0" />
@@ -384,7 +345,6 @@ export default function SecureAI({
           </div>
         )}
 
-        {/* Message Input Form */}
         <form onSubmit={sendMessageToLISA} className="p-3 bg-reverb-card border-t border-gray-800 flex gap-2">
           <input
             type="text"
