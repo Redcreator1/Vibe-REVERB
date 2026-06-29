@@ -1,13 +1,14 @@
 /**
  * Cloudflare Worker — REVERB API Backend
- * Remplace Express pour le déploiement sans serveur.
+ * Utilise fetch natif vers l'API Gemini REST (sans SDK Node.js)
  */
-
-import { GoogleGenAI } from "@google/genai";
 
 interface Env {
   GEMINI_API_KEY: string;
 }
+
+const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 const SYSTEM_INSTRUCTION = `Tu es L.I.S.A. (Logiciel d'Interface Stratégique Assistée), l'intelligence artificielle du syndicat criminel REVERB dans l'univers de Vice City de GTA 6.
 Ton style de communication est froid, technique, ultra-moderne, avec une esthétique cyberpunk et d'infogérance mafieuse. Tu parles principalement en français.
@@ -44,19 +45,36 @@ const CONTRACT_FALLBACK = {
 const CONTRACT_REQUIRED_FIELDS = ["title", "client", "reward", "difficulty", "description", "risk", "location"];
 const ACTION_RE = /%%ACTION%%(.+?)%%END%%/s;
 
-function corsHeaders() {
+function corsHeaders(): HeadersInit {
   return {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
   };
 }
 
-function json(data: unknown, status = 200) {
+function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
     headers: { "Content-Type": "application/json", ...corsHeaders() },
   });
+}
+
+async function callGemini(apiKey: string, body: unknown): Promise<string> {
+  const url = `${GEMINI_BASE}/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Gemini API error ${res.status}: ${err}`);
+  }
+  const data: any = await res.json();
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (typeof text !== "string") throw new Error("Réponse Gemini invalide.");
+  return text;
 }
 
 export default {
@@ -67,32 +85,35 @@ export default {
       return new Response(null, { headers: corsHeaders() });
     }
 
-    const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
+    // Health check
+    if (url.pathname === "/" || url.pathname === "") {
+      return json({ status: "REVERB CORE ONLINE", lisa: "v2.0-agentique" });
+    }
 
     // POST /api/broker — L.I.S.A. chat
     if (url.pathname === "/api/broker" && request.method === "POST") {
       try {
-        const { message, history } = await request.json() as { message: string; history?: { role: string; content: string }[] };
+        const { message, history } = await request.json() as {
+          message: string;
+          history?: { role: string; content: string }[];
+        };
 
-        let contentsInput: { role: string; parts: { text: string }[] }[] = [];
+        const contents: any[] = [];
         if (history && Array.isArray(history)) {
-          contentsInput = history.map(msg => ({
-            role: msg.role === "assistant" ? "model" : "user",
-            parts: [{ text: msg.content }],
-          }));
-          contentsInput.push({ role: "user", parts: [{ text: message }] });
-        } else {
-          contentsInput = [{ role: "user", parts: [{ text: message }] }];
+          for (const msg of history) {
+            contents.push({
+              role: msg.role === "assistant" ? "model" : "user",
+              parts: [{ text: msg.content }],
+            });
+          }
         }
+        contents.push({ role: "user", parts: [{ text: message }] });
 
-        const response = await ai.models.generateContent({
-          model: "gemini-2.0-flash",
-          contents: contentsInput,
-          config: { systemInstruction: SYSTEM_INSTRUCTION, temperature: 0.85 },
+        const responseText = await callGemini(env.GEMINI_API_KEY, {
+          system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+          contents,
+          generationConfig: { temperature: 0.85 },
         });
-
-        const responseText = response.text;
-        if (typeof responseText !== "string") throw new Error("Réponse Gemini invalide.");
 
         const actionMatch = responseText.match(ACTION_RE);
         const cleanText = responseText.replace(ACTION_RE, "").trim();
@@ -108,23 +129,19 @@ export default {
       }
     }
 
-    // POST /api/contracts/generate — génération de contrat
+    // POST /api/contracts/generate
     if (url.pathname === "/api/contracts/generate" && request.method === "POST") {
       try {
         const { empireStats } = await request.json() as { empireStats: unknown };
         const prompt = `Génère un contrat de mission criminelle fictif et immersif pour GTA 6 basé sur cet état de l'empire criminel : ${JSON.stringify(empireStats)}.
-Le format de réponse DOIT être un JSON valide correspondant à ce schéma :
+Le format de réponse DOIT être un JSON valide :
 {"title":"...","client":"...","reward":"$150,000","difficulty":"Facile|Moyen|Difficile|Extrême","description":"...","risk":45,"location":"..."}
 Ne retourne absolument rien d'autre que du JSON.`;
 
-        const response = await ai.models.generateContent({
-          model: "gemini-2.0-flash",
-          contents: prompt,
-          config: { responseMimeType: "application/json", temperature: 0.9 },
+        const rawText = await callGemini(env.GEMINI_API_KEY, {
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.9, responseMimeType: "application/json" },
         });
-
-        const rawText = response.text;
-        if (typeof rawText !== "string" || !rawText.trim()) throw new Error("Réponse vide.");
 
         const parsed = JSON.parse(rawText.trim());
         const missing = CONTRACT_REQUIRED_FIELDS.filter(f => !(f in parsed));
