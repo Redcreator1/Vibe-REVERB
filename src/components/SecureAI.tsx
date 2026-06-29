@@ -124,7 +124,7 @@ export default function SecureAI({
 
     try {
       // Send chat history and current user input to backend
-      const response = await fetch("/api/broker", {
+      const response = await fetch("https://reverb01.mindsetredcom.workers.dev/api/broker", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -171,7 +171,7 @@ export default function SecureAI({
     setIsGeneratingContract(true);
 
     try {
-      const response = await fetch("/api/contracts/generate", {
+      const response = await fetch("https://reverb01.mindsetredcom.workers.dev/api/contracts/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
