@@ -11,7 +11,6 @@ interface SecureAIProps {
   onAddInboxMessage: (sender: string, avatar: string, subject: string, body: string, actionable?: boolean) => void;
 }
 
-// Visual feedback per action type
 const ACTION_LABELS: Record<string, { icon: string; label: string; color: string }> = {
   ADD_CONTRACT:        { icon: "⚔️",  label: "CONTRAT AJOUTÉ AU DECK",        color: "text-emerald-400" },
   UPGRADE_ENTERPRISE:  { icon: "🔒",  label: "SÉCURITÉ ENTERPRISE UPGRADÉE",  color: "text-reverb-cyan" },
@@ -28,7 +27,7 @@ const AI_LOADING_PHASES = [
   "ESTABLISHING CRYPTOGRAPHIC BROKER SYNAPSE..."
 ];
 
-const WORKER_URL = "https://reverb01.mindsetredcom.workers.dev";
+const WORKER_URL = "https://99b92864-reverb01.mindsetredcom.workers.dev";
 
 export default function SecureAI({
   gameState,
@@ -137,9 +136,7 @@ export default function SecureAI({
           content: data.text,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
-        if (data.action) {
-          executeAction(data.action);
-        }
+        if (data.action) executeAction(data.action);
       } else {
         throw new Error(data.error || "Réponse vide de L.I.S.A.");
       }
@@ -148,7 +145,7 @@ export default function SecureAI({
       onAddChatMessage({
         id: `lisa_err_${Date.now()}`,
         role: "assistant",
-        content: `🚨 ERREUR DE COUPLAGE L.I.S.A. : Impossible de joindre le nœud de calcul neuronal. Détails : ${err.message || "Veuillez configurer votre clé API Gemini dans les Secrets d'AI Studio."}`,
+        content: `🚨 ERREUR DE COUPLAGE L.I.S.A. : Impossible de joindre le nœud de calcul neuronal. Détails : ${err.message || "Veuillez configurer votre clé API Gemini."}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       });
     } finally {
@@ -180,7 +177,7 @@ export default function SecureAI({
         onAddChatMessage({
           id: `lisa_gen_${Date.now()}`,
           role: "assistant",
-          content: `📡 REVERB CORE : Nouveau contrat tactique décrypté de force. Mission: **"${data.title}"** attribué pour des dividendes de **${data.reward}** à **${data.location}** avec un niveau de risque estimé à **${data.risk}%**. Le contrat a été téléversé dans votre onglet des missions !`,
+          content: `📡 REVERB CORE : Nouveau contrat tactique décrypté. Mission: **"${data.title}"** — ${data.reward} à **${data.location}** (risque ${data.risk}%). Téléversé dans votre deck !`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
       } else {
@@ -201,7 +198,7 @@ export default function SecureAI({
       onAddChatMessage({
         id: `lisa_gen_fb_${Date.now()}`,
         role: "assistant",
-        content: `🛰️ REVERB ALERTE: Mode sécurité activé. Grille de calcul hors ligne. J'ai généré un contrat sécurisé local de remplacement : **"${fallback.title}"** (Gains: ${fallback.reward}).`,
+        content: `🛰️ REVERB ALERTE: Mode sécurité activé. Contrat local généré : **"${fallback.title}"** (${fallback.reward}).`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       });
     } finally {
@@ -217,27 +214,27 @@ export default function SecureAI({
             <Cpu className="w-5 h-5 text-reverb-cyan animate-pulse" />
             <div>
               <h3 className="font-display font-bold text-white text-sm">REVERB CORE SYSTEM</h3>
-              <p className="text-[10px] text-gray-400 font-mono">IA L.I.S.A. v2.0-Flash</p>
+              <p className="text-[10px] text-gray-400 font-mono">IA L.I.S.A. v2.0-Agentique</p>
             </div>
           </div>
 
           <div className="space-y-3 font-mono text-[11px] text-gray-400">
             <p className="bg-reverb-dark/80 p-2.5 rounded border border-gray-800 leading-relaxed">
-              L.I.S.A. est connectée en temps réel au noyau de Vice City. Elle peut désormais <span className="text-reverb-cyan font-bold">exécuter des actions</span> dans votre empire.
+              L.I.S.A. est connectée au Worker Cloudflare. Elle peut <span className="text-reverb-cyan font-bold">exécuter des actions</span> dans votre empire en temps réel.
             </p>
 
             <div className="space-y-1.5 pt-1">
               <span className="text-[10px] text-gray-500 block uppercase tracking-wider">Commandes agentiques</span>
               {[
-                { icon: <ShieldCheck className="w-3 h-3 text-reverb-cyan" />, cmd: '"Upgrade la sécurité du Malibu Club"' },
-                { icon: <AlertTriangle className="w-3 h-3 text-reverb-pink" />, cmd: '"Baisse mon niveau d\'alerte à 0"' },
-                { icon: <ArrowRightLeft className="w-3 h-3 text-emerald-400" />, cmd: '"Transfère $50,000 sales en propre"' },
-                { icon: <Mail className="w-3 h-3 text-reverb-cyan" />, cmd: '"Envoie un message d\'alerte dans l\'inbox"' },
-                { icon: <Plus className="w-3 h-3 text-reverb-pink" />, cmd: '"Crée un contrat à Vice Beach"' },
+                { icon: <ShieldCheck className="w-3 h-3 text-reverb-cyan" />, cmd: 'Upgrade la sécurité du Malibu Club' },
+                { icon: <AlertTriangle className="w-3 h-3 text-reverb-pink" />, cmd: "Baisse mon niveau d'alerte à 0" },
+                { icon: <ArrowRightLeft className="w-3 h-3 text-emerald-400" />, cmd: 'Transfère $50,000 sales en propre' },
+                { icon: <Mail className="w-3 h-3 text-reverb-cyan" />, cmd: "Envoie un message d'alerte dans l'inbox" },
+                { icon: <Plus className="w-3 h-3 text-reverb-pink" />, cmd: 'Crée un contrat à Vice Beach' },
               ].map(({ icon, cmd }) => (
                 <button
                   key={cmd}
-                  onClick={() => setUserInput(cmd.replace(/"/g, ""))}
+                  onClick={() => setUserInput(cmd)}
                   className="w-full text-left flex items-start gap-1.5 p-1.5 bg-reverb-dark/40 border border-gray-800 hover:border-reverb-cyan/30 rounded transition cursor-pointer"
                 >
                   <span className="mt-0.5 shrink-0">{icon}</span>
@@ -249,8 +246,8 @@ export default function SecureAI({
             <div className="space-y-1.5 pt-1">
               <span className="text-[10px] text-gray-500 block">STATUT SYSTÈME</span>
               <div className="flex items-center justify-between p-1.5 bg-reverb-dark/40 border border-gray-800 rounded">
-                <span>RÉSEAU COUPLÉ</span>
-                <span className="text-reverb-cyan font-bold">ACTIF</span>
+                <span>WORKER CLOUDFLARE</span>
+                <span className="text-reverb-cyan font-bold">ONLINE</span>
               </div>
               <div className="flex items-center justify-between p-1.5 bg-reverb-dark/40 border border-gray-800 rounded">
                 <span>MODE AGENTIQUE</span>
@@ -351,7 +348,7 @@ export default function SecureAI({
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             disabled={isTyping || isGeneratingContract}
-            placeholder={isTyping ? "L.I.S.A. calcule..." : "Écrire une directive criminelle (ex: Comment échapper aux flics ?)"}
+            placeholder={isTyping ? "L.I.S.A. calcule..." : "Directive criminelle (ex: Baisse mon alerte à 0)"}
             className="flex-grow bg-reverb-dark border border-gray-800 rounded px-3.5 py-2 text-xs font-mono text-white outline-none focus:border-reverb-cyan transition"
           />
           <button
