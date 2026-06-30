@@ -4,26 +4,17 @@ import { INITIAL_STATE } from "./data/mockData";
 import { usePersistedState } from "./hooks/usePersistedState";
 import LiveTelemetry from "./components/LiveTelemetry";
 import OfflineBroker from "./components/OfflineBroker";
-import SecureAI from "./components/SecureAI";
 import SecureInbox from "./components/SecureInbox";
 import SandboxRP from "./components/SandboxRP";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  Compass,
-  DollarSign,
   TrendingUp,
   Mail,
   Cpu,
   Tv,
-  Users,
-  AlertOctagon,
   Award,
-  Radio,
   Clock,
-  ExternalLink,
   Flame,
-  Check,
-  AlertCircle,
   Server
 } from "lucide-react";
 
@@ -62,7 +53,7 @@ export default function App() {
     setMessages(next.messages);
   };
 
-  const [activeTab, setActiveTab] = useState<"telemetry" | "empire" | "lisa" | "inbox" | "sandbox">("sandbox");
+  const [activeTab, setActiveTab] = useState<"telemetry" | "empire" | "inbox" | "sandbox">("sandbox");
   
   // Simulation heist status
   const [activeMission, setActiveMission] = useState<Contract | null>(null);
@@ -234,52 +225,54 @@ export default function App() {
     setMissionLog("");
   };
 
+  const unreadCount = state.messages.filter(m => !m.decrypted || m.actionRequired && !m.actionCompleted).length;
+
   return (
     <div className="min-h-screen bg-reverb-dark text-white font-sans crt-grid flex flex-col justify-between">
       {/* Immersive Top Bar */}
-      <header className="bg-reverb-card border-b border-reverb-pink/30 p-4 sticky top-0 z-50 shadow-glow-pink">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          
+      <header className="bg-reverb-card border-b border-reverb-pink/30 px-4 py-3 sticky top-0 z-50 shadow-glow-pink">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+
           {/* Logo Title */}
-          <div className="flex items-center space-x-3">
-            <div className="bg-reverb-pink/15 p-2 rounded border border-reverb-pink/30 shadow-glow-pink animate-pulse">
-              <Cpu className="w-5.5 h-5.5 text-reverb-pink" />
+          <div className="flex items-center space-x-2.5">
+            <div className="bg-reverb-pink/15 p-1.5 rounded border border-reverb-pink/30 shadow-glow-pink animate-pulse">
+              <Cpu className="w-5 h-5 text-reverb-pink" />
             </div>
             <div>
-              <h1 className="font-display font-extrabold text-lg tracking-wider text-white flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-base tracking-wider text-white flex items-center gap-2">
                 SYSTÈME <span className="text-reverb-pink drop-shadow-[0_0_8px_rgba(255,42,116,0.8)]">REVERB</span>
-                <span className="text-xs font-mono font-normal bg-reverb-cyan/10 text-reverb-cyan px-2 py-0.5 rounded border border-reverb-cyan/20">
+                <span className="hidden sm:inline text-xs font-mono font-normal bg-reverb-cyan/10 text-reverb-cyan px-2 py-0.5 rounded border border-reverb-cyan/20">
                   V2.0.0
                 </span>
               </h1>
-              <p className="text-[10px] text-gray-400 font-mono">
+              <p className="hidden sm:block text-[10px] text-gray-400 font-mono">
                 CONSOLE INVERSIVE DE SÉCURITÉ DE VICE CITY
               </p>
             </div>
           </div>
 
           {/* Connected Quick Telemetry Bar */}
-          <div className="flex items-center space-x-6 text-xs font-mono">
-            <div className="hidden sm:block">
+          <div className="flex items-center gap-3 sm:gap-6 text-xs font-mono">
+            <div className="hidden md:block">
               <span className="text-gray-500 text-[10px] block">FLUX TÉLÉMÉTRIQUE</span>
               <span className={`font-bold flex items-center gap-1 ${state.isOnline ? "text-reverb-cyan" : "text-reverb-pink"}`}>
                 <span className={`w-2 h-2 rounded-full inline-block ${state.isOnline ? "bg-reverb-cyan animate-pulse" : "bg-reverb-pink"}`}></span>
-                {state.isOnline ? "SYNC_OK" : "SYNC_INTERRUPTED"}
+                {state.isOnline ? "SYNC_OK" : "OFFLINE"}
               </span>
             </div>
 
             <div>
-              <span className="text-gray-500 text-[10px] block">FONDS TOTAUX EMPIRE</span>
-              <span className="text-white font-bold text-sm">
+              <span className="text-gray-500 text-[9px] sm:text-[10px] block">RESSOURCES TOTALES</span>
+              <span className="text-white font-bold text-xs sm:text-sm">
                 ${(state.empire.cashClean + state.empire.cashDirty).toLocaleString()}
               </span>
             </div>
 
             <div>
-              <span className="text-gray-500 text-[10px] block">ALERTE VCPD</span>
+              <span className="text-gray-500 text-[9px] sm:text-[10px] block">VCPD</span>
               <span className="text-reverb-pink font-bold flex items-center gap-1">
-                <Flame className="w-4.5 h-4.5 text-reverb-pink fill-reverb-pink animate-bounce" />
-                {state.telemetry.searchLevel} / 5 ETOILES
+                <Flame className="w-4 h-4 text-reverb-pink fill-reverb-pink animate-bounce" />
+                <span className="text-xs">{state.telemetry.searchLevel}/5</span>
               </span>
             </div>
           </div>
@@ -288,13 +281,13 @@ export default function App() {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto p-4 md:p-6 w-full flex-grow space-y-6">
-        
-        {/* Navigation Tabs */}
-        <div className="flex flex-wrap bg-reverb-card border border-gray-800 p-1.5 rounded-lg font-mono text-xs gap-1 max-w-4xl">
+      <main className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6 w-full flex-grow space-y-4 sm:space-y-6 pb-20 sm:pb-6">
+
+        {/* Navigation Tabs — desktop only */}
+        <div className="hidden sm:flex flex-wrap bg-reverb-card border border-gray-800 p-1.5 rounded-lg font-mono text-xs gap-1 max-w-4xl">
           <button
             onClick={() => setActiveTab("telemetry")}
-            className={`flex-1 min-w-[120px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 ${
+            className={`flex-1 min-w-[110px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 ${
               activeTab === "telemetry"
                 ? "bg-reverb-cyan text-black font-extrabold shadow-glow-cyan"
                 : "text-gray-400 hover:text-white hover:bg-reverb-dark/40"
@@ -304,7 +297,7 @@ export default function App() {
           </button>
           <button
             onClick={() => setActiveTab("empire")}
-            className={`flex-1 min-w-[120px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 ${
+            className={`flex-1 min-w-[110px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 ${
               activeTab === "empire"
                 ? "bg-reverb-pink text-white font-extrabold shadow-glow-pink"
                 : "text-gray-400 hover:text-white hover:bg-reverb-dark/40"
@@ -313,28 +306,23 @@ export default function App() {
             <TrendingUp className="w-4 h-4" /> Empire
           </button>
           <button
-            onClick={() => setActiveTab("lisa")}
-            className={`flex-1 min-w-[120px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 ${
-              activeTab === "lisa"
-                ? "bg-reverb-cyan text-black font-extrabold shadow-glow-cyan"
-                : "text-gray-400 hover:text-white hover:bg-reverb-dark/40"
-            }`}
-          >
-            <Cpu className="w-4 h-4" /> Broker AI
-          </button>
-          <button
             onClick={() => setActiveTab("inbox")}
-            className={`flex-1 min-w-[120px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 ${
+            className={`flex-1 min-w-[110px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 relative ${
               activeTab === "inbox"
                 ? "bg-reverb-pink text-white font-extrabold shadow-glow-pink"
                 : "text-gray-400 hover:text-white hover:bg-reverb-dark/40"
             }`}
           >
             <Mail className="w-4 h-4" /> Messagerie
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-reverb-pink text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )}
           </button>
           <button
             onClick={() => setActiveTab("sandbox")}
-            className={`flex-1 min-w-[140px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 relative overflow-hidden ${
+            className={`flex-1 min-w-[130px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 relative overflow-hidden ${
               activeTab === "sandbox"
                 ? "bg-reverb-cyan text-black font-extrabold shadow-glow-cyan"
                 : "text-gray-200 bg-reverb-cyan/10 border border-reverb-cyan/30 hover:text-white hover:bg-reverb-cyan/20"
@@ -348,22 +336,22 @@ export default function App() {
           </button>
         </div>
 
-        {/* Global Sandbox Notification Banner */}
-        <div className="bg-gradient-to-r from-reverb-cyan/20 to-reverb-pink/20 border border-reverb-cyan/30 p-3.5 rounded-lg font-mono text-xs flex flex-col sm:flex-row items-center justify-between gap-3 shadow-glow-cyan/10 animate-pulse">
+        {/* Sandbox Notification Banner — hidden on mobile to save space */}
+        <div className="hidden sm:flex bg-gradient-to-r from-reverb-cyan/20 to-reverb-pink/20 border border-reverb-cyan/30 p-3.5 rounded-lg font-mono text-xs flex-col sm:flex-row items-center justify-between gap-3 shadow-glow-cyan/10">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-2.5 w-2.5 relative">
+            <span className="flex h-2.5 w-2.5 relative shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-reverb-cyan opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-reverb-cyan"></span>
             </span>
             <p className="text-gray-200">
-              ⚡ <strong className="text-reverb-cyan">CONSOLE REVERB ACTIVE :</strong> Le simulateur de serveurs <strong>Sandbox RP</strong> en monde ouvert est opérationnel. Modifiez les règles, créez des citoyens IA ou générez des guerres de gangs à la volée !
+              ⚡ <strong className="text-reverb-cyan">CONSOLE REVERB ACTIVE :</strong> Le simulateur <strong>Sandbox RP</strong> est opérationnel. Modifiez les règles, créez des citoyens IA ou générez des guerres de gangs !
             </p>
           </div>
-          <button 
+          <button
             onClick={() => setActiveTab("sandbox")}
-            className="text-[10px] bg-reverb-cyan hover:bg-reverb-cyan/80 text-black px-3 py-1.5 rounded font-bold uppercase tracking-wider transition"
+            className="shrink-0 text-[10px] bg-reverb-cyan hover:bg-reverb-cyan/80 text-black px-3 py-1.5 rounded font-bold uppercase tracking-wider transition"
           >
-            Accéder à l'Éditeur RP
+            Éditeur RP
           </button>
         </div>
 
@@ -390,17 +378,6 @@ export default function App() {
                 gameState={state}
                 onUpdateEmpire={updateEmpire}
                 onAddMessage={addInboxMessage}
-              />
-            )}
-
-            {activeTab === "lisa" && (
-              <SecureAI
-                gameState={state}
-                onAddChatMessage={addChatMessage}
-                onAddContract={addContract}
-                onUpdateEmpire={updateEmpire}
-                onUpdateTelemetry={updateTelemetry}
-                onAddInboxMessage={addInboxMessage}
               />
             )}
 
@@ -488,7 +465,7 @@ export default function App() {
             <h2 className="font-display font-semibold text-white text-base flex items-center gap-2">
               <Award className="w-4.5 h-4.5 text-reverb-pink" /> MISSIONS & CONTRATS ACTIFS
             </h2>
-            <span className="text-xs font-mono text-gray-500">DECK DE CONTRAT CRÉÉ PAR L.I.S.A</span>
+            <span className="hidden sm:block text-xs font-mono text-gray-500">REVERB CONTRACTS BOARD</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -539,6 +516,42 @@ export default function App() {
         </div>
 
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-reverb-card border-t border-reverb-pink/30 flex items-stretch h-16 shadow-[0_-4px_24px_rgba(255,42,116,0.15)]">
+        {[
+          { id: "telemetry" as const, icon: Tv, label: "Écran" },
+          { id: "empire" as const, icon: TrendingUp, label: "Empire" },
+          { id: "inbox" as const, icon: Mail, label: "Messages", badge: unreadCount },
+          { id: "sandbox" as const, icon: Server, label: "Sandbox", live: true },
+        ].map(({ id, icon: Icon, label, badge, live }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-all ${
+              activeTab === id
+                ? "text-reverb-pink"
+                : "text-gray-500 hover:text-gray-300"
+            }`}
+          >
+            {activeTab === id && (
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-reverb-pink rounded-b-full" />
+            )}
+            <div className="relative">
+              <Icon className={`w-5 h-5 ${live ? "animate-pulse" : ""}`} />
+              {badge ? (
+                <span className="absolute -top-1.5 -right-1.5 bg-reverb-pink text-white text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
+                  {badge}
+                </span>
+              ) : null}
+              {live && activeTab !== id && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-reverb-cyan rounded-full animate-pulse" />
+              )}
+            </div>
+            <span className="text-[9px] font-mono font-semibold uppercase tracking-wider">{label}</span>
+          </button>
+        ))}
+      </nav>
 
       {/* Retro aesthetic Footer */}
       <footer className="bg-reverb-card border-t border-gray-900 p-5 font-mono text-center text-xs text-gray-500 mt-8">

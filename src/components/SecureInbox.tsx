@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NPCMessage, GameState } from "../types";
-import { Mail, MailOpen, Lock, ShieldCheck, CornerDownRight, Check, Key, Loader } from "lucide-react";
+import { Mail, MailOpen, Lock, ShieldCheck, CornerDownRight, Check, Key, Loader, ArrowLeft } from "lucide-react";
 
 interface SecureInboxProps {
   gameState: GameState;
@@ -19,6 +19,7 @@ export default function SecureInbox({
   const { cashDirty, cashClean, cryptoBalance, enterprises } = gameState.empire;
   const [selectedMsgId, setSelectedMsgId] = useState<string>(messages[0]?.id || "");
   const [decryptingId, setDecryptingId] = useState<string | null>(null);
+  const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
   const selectedMessage = messages.find(m => m.id === selectedMsgId) || messages[0];
 
@@ -106,10 +107,15 @@ export default function SecureInbox({
     onUpdateMessages(updatedMessages);
   };
 
+  const handleSelectMessage = (id: string) => {
+    setSelectedMsgId(id);
+    setMobileShowDetail(true);
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6" id="secure-inbox-module">
-      {/* Left pane: Messages List */}
-      <div className="md:col-span-1 bg-reverb-card border border-reverb-cyan/10 rounded-lg overflow-hidden flex flex-col h-[400px]">
+      {/* Left pane: Messages List — hidden on mobile when detail is open */}
+      <div className={`md:col-span-1 bg-reverb-card border border-reverb-cyan/10 rounded-lg overflow-hidden flex flex-col h-[calc(100svh-14rem)] md:h-[480px] ${mobileShowDetail ? "hidden md:flex" : "flex"}`}>
         <div className="p-3 bg-reverb-dark border-b border-gray-800 flex items-center justify-between font-mono text-xs">
           <span className="text-white font-bold flex items-center gap-1.5">
             <Mail className="w-3.5 h-3.5 text-reverb-cyan" /> ENCRYP_INBOX
@@ -125,7 +131,7 @@ export default function SecureInbox({
             return (
               <button
                 key={msg.id}
-                onClick={() => setSelectedMsgId(msg.id)}
+                onClick={() => handleSelectMessage(msg.id)}
                 className={`w-full text-left p-3.5 transition block relative ${
                   isSelected ? "bg-reverb-dark/90" : "hover:bg-reverb-dark/30"
                 }`}
@@ -174,12 +180,19 @@ export default function SecureInbox({
         </div>
       </div>
 
-      {/* Right pane: Message details */}
-      <div className="md:col-span-2 bg-reverb-card border border-reverb-cyan/15 rounded-lg overflow-hidden flex flex-col h-[400px] justify-between">
+      {/* Right pane: Message details — full screen on mobile when open */}
+      <div className={`md:col-span-2 bg-reverb-card border border-reverb-cyan/15 rounded-lg overflow-hidden flex flex-col h-[calc(100svh-14rem)] md:h-[480px] justify-between ${mobileShowDetail ? "flex" : "hidden md:flex"}`}>
         {selectedMessage ? (
           <>
             {/* Header */}
             <div className="p-4 bg-reverb-dark border-b border-gray-900 font-mono text-xs space-y-2">
+              {/* Mobile back button */}
+              <button
+                onClick={() => setMobileShowDetail(false)}
+                className="md:hidden flex items-center gap-1 text-reverb-cyan text-[11px] mb-2 hover:text-white transition"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Retour inbox
+              </button>
               <div className="flex justify-between items-center">
                 <span className="text-gray-500">DE :</span>
                 <span className="text-reverb-cyan font-bold">{selectedMessage.sender} (SENDER_NODE)</span>

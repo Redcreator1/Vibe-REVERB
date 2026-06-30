@@ -468,15 +468,13 @@ export default function LiveTelemetry({
               <h2 className="font-display font-semibold text-reverb-cyan text-base flex items-center gap-2">
                 <Map className="w-4 h-4 text-reverb-cyan" /> RADAR GPS TACTIQUE : LE DAEMON DE VICE CITY
               </h2>
-              <div className="flex items-center gap-4 text-xs font-mono text-gray-400">
-                <span className="flex items-center gap-1">
-                  <Compass className="w-3.5 h-3.5 animate-spin text-reverb-cyan" /> Lat: {telemetry.latitude}
+              <div className="flex items-center gap-3 text-xs font-mono text-gray-400">
+                <span className="hidden sm:flex items-center gap-1">
+                  <Compass className="w-3.5 h-3.5 animate-spin text-reverb-cyan" /> {telemetry.latitude}
                 </span>
-                <span>
-                  Lng: {telemetry.longitude}
-                </span>
-                <span className="text-reverb-pink font-bold">
-                  ZONE : {telemetry.zone.toUpperCase()}
+                <span className="hidden sm:block">/ {telemetry.longitude}</span>
+                <span className="text-reverb-pink font-bold text-[10px]">
+                  {telemetry.zone.toUpperCase()}
                 </span>
               </div>
             </div>
@@ -513,7 +511,7 @@ export default function LiveTelemetry({
             {/* Playground controls to manually change telemetry coordinates or trigger events */}
             <div className="bg-reverb-dark/40 p-3 rounded border border-gray-800 font-mono text-xs space-y-2">
               <span className="text-reverb-cyan font-bold block mb-1">PANEL DE CONTRÔLE DE SIMULATION :</span>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
                 <button
                   onClick={() => {
                     handleManualAction("speed", 210);
