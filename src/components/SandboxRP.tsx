@@ -180,11 +180,11 @@ export default function SandboxRP({
     const randomBot = bots[Math.floor(Math.random() * bots.length)];
     
     const actions = [
-      `a braqué une épicerie sur Little Havana et a récolté $${Math.floor(Math.random() * 8000) + 1500} sales.`,
+      `a mené une extraction rapide sur Little Havana et a récolté $${Math.floor(Math.random() * 8000) + 1500} de ressources brutes.`,
       `a été repéré par un hélicoptère de patrouille dans le secteur nord.`,
       `a transféré 2.5 R_COIN à un contact anonyme sur le réseau cryptographique.`,
       `a déclenché une alarme de sécurité dans l'un de vos laboratoires de drogue.`,
-      `propose de blanchir une partie de votre argent en échange d'une commission de 15%.`,
+      `propose de convertir une partie de vos ressources brutes en échange d'une commission de 15%.`,
       `a provoqué un accident de voiture spectaculaire avec le FBI en plein centre-ville.`
     ];
 
@@ -192,7 +192,7 @@ export default function SandboxRP({
     logEvent(`[BOT] @${randomBot.name} ${chosenAction}`);
 
     // Some actions have systemic consequences
-    if (chosenAction.includes("braqué une épicerie") || chosenAction.includes("accident")) {
+    if (chosenAction.includes("extraction rapide") || chosenAction.includes("accident")) {
       // Increase search level dynamically
       onUpdateTelemetry({
         ...gameState.telemetry,
@@ -260,15 +260,13 @@ export default function SandboxRP({
   };
 
   const handleInjectLaundering = () => {
-    // If player has dirty cash, let's launder some at a custom rate based on server multiplier!
     const { cashDirty, cashClean } = gameState.empire;
     if (cashDirty <= 0) {
-      logEvent("❌ INJECTION ÉCHOUÉE : Aucun fonds sale disponible à blanchir.");
+      logEvent("❌ INJECTION ÉCHOUÉE : Aucune ressource brute disponible à convertir.");
       return;
     }
 
     const amountToLaunder = Math.min(cashDirty, 50000);
-    // Custom tax based on server multiplier: high multiplier = low tax!
     const taxRate = Math.max(0.05, 0.25 - (activeServer.economyMultiplier * 0.05));
     const launderedClean = Math.floor(amountToLaunder * (1 - taxRate));
 
@@ -278,7 +276,7 @@ export default function SandboxRP({
       cashClean: cashClean + launderedClean
     });
 
-    logEvent(`💸 BLANCHIMENT AUTOMATIQUE : $${amountToLaunder.toLocaleString()} sales convertis en $${launderedClean.toLocaleString()} propres.`);
+    logEvent(`💸 CONVERSION AUTO : $${amountToLaunder.toLocaleString()} bruts convertis en $${launderedClean.toLocaleString()} raffinés.`);
     logEvent(`Commission prélevée par la faction locale : ${(taxRate * 100).toFixed(0)}%`);
   };
 
@@ -558,8 +556,8 @@ export default function SandboxRP({
                 <span className="text-[8px] bg-emerald-500/15 text-emerald-400 px-1 rounded">CASH</span>
               </div>
               <div>
-                <span className="text-[11px] font-bold text-white block">BLANCHIMENT FAST</span>
-                <span className="text-[9px] text-gray-500">Lave $50,000 sales</span>
+                <span className="text-[11px] font-bold text-white block">CONVERSION FLASH</span>
+                <span className="text-[9px] text-gray-500">Convertit $50,000 bruts</span>
               </div>
             </button>
 
