@@ -1,46 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#1a1b2e"/>
-      <stop offset="100%" stop-color="#0d0e15"/>
+    <radialGradient id="bg" cx="38%" cy="30%" r="72%">
+      <stop offset="0%" stop-color="#16172b"/>
+      <stop offset="100%" stop-color="#07080f"/>
     </radialGradient>
-    <filter id="glow-pink">
-      <feGaussianBlur stdDeviation="6" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter id="gp" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <filter id="glow-cyan">
-      <feGaussianBlur stdDeviation="8" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter id="gc" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="13" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="border-glow">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
 
-  <!-- Background rounded square -->
-  <rect width="512" height="512" rx="110" ry="110" fill="url(#bg)"/>
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
 
-  <!-- Subtle grid lines -->
-  <g stroke="#00f0ff" stroke-width="0.6" opacity="0.07">
-    <line x1="0" y1="128" x2="512" y2="128"/>
-    <line x1="0" y1="256" x2="512" y2="256"/>
-    <line x1="0" y1="384" x2="512" y2="384"/>
-    <line x1="128" y1="0" x2="128" y2="512"/>
-    <line x1="256" y1="0" x2="256" y2="512"/>
-    <line x1="384" y1="0" x2="384" y2="512"/>
-  </g>
+  <!-- Subtle ambient pink -->
+  <ellipse cx="230" cy="215" rx="190" ry="160" fill="#ff2a74" opacity="0.04"/>
 
-  <!-- Cyan echo rings -->
-  <circle cx="256" cy="256" r="195" fill="none" stroke="#00f0ff" stroke-width="1.5" opacity="0.12"/>
-  <circle cx="256" cy="256" r="160" fill="none" stroke="#00f0ff" stroke-width="1" opacity="0.09"/>
-  <circle cx="256" cy="256" r="220" fill="none" stroke="#ff2a74" stroke-width="1" opacity="0.08"/>
+  <!-- R top half: P/D shape -->
+  <path fill="#ff2a74" filter="url(#gp)"
+    d="M 92 88 L 308 88 A 102 89 0 0 1 308 266 L 150 266 L 150 88 Z"/>
 
-  <!-- R letter -->
-  <rect x="148" y="128" width="52" height="256" rx="8" fill="#ff2a74" filter="url(#glow-pink)"/>
-  <rect x="148" y="128" width="160" height="52" rx="8" fill="#ff2a74" filter="url(#glow-pink)"/>
-  <rect x="148" y="228" width="140" height="48" rx="8" fill="#ff2a74" filter="url(#glow-pink)"/>
-  <path d="M308 128 Q364 128 364 204 Q364 276 308 276" fill="none" stroke="#ff2a74" stroke-width="52" stroke-linecap="round" filter="url(#glow-pink)"/>
+  <!-- R vertical bar -->
+  <rect x="92" y="88" width="58" height="336" rx="7" fill="#ff2a74" filter="url(#gp)"/>
 
-  <!-- Diagonal leg — cyan accent -->
-  <line x1="290" y1="276" x2="370" y2="384" stroke="#00f0ff" stroke-width="52" stroke-linecap="round" filter="url(#glow-cyan)"/>
+  <!-- R middle crossbar -->
+  <rect x="150" y="266" width="160" height="56" rx="7" fill="#ff2a74" filter="url(#gp)"/>
+
+  <!-- R diagonal leg (CYAN) -->
+  <line x1="293" y1="266" x2="415" y2="424"
+        stroke="#00f0ff" stroke-width="60" stroke-linecap="round" filter="url(#gc)"/>
 
   <!-- Border glow -->
-  <rect width="512" height="512" rx="110" ry="110" fill="none" stroke="#ff2a74" stroke-width="3" opacity="0.35"/>
+  <rect width="512" height="512" rx="96" fill="none"
+        stroke="#ff2a74" stroke-width="2.5" opacity="0.55" filter="url(#border-glow)"/>
 </svg>
