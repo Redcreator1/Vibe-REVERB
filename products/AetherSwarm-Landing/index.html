@@ -1,624 +1,813 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AetherSwarm v1 — Ton OS d'agents IA en local</title>
-  <meta name="description" content="6 agents IA collaborent sur ton PC. Tu paies une fois. Tes agents tournent gratuitement sur Ollama. Recherche → Stratégie → Code → Exécution.">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aether Swarm — Ton OS d'agents IA, en local sur ton PC</title>
+    <meta
+      name="description"
+      content="Aether Swarm est une console desktop multi-agents qui tourne en local (Ollama + LangGraph + Chroma). Tu paies une fois. Tes agents te coûtent zéro abo IA."
+    />
+    <meta property="og:title" content="Aether Swarm — OS d'agents IA local" />
+    <meta
+      property="og:description"
+      content="6 agents qui collaborent sur ton PC. Zéro abo. Tu paies une fois la console, tes LLM tournent en local."
+    />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family:
+          'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: #07080f;
+        color: #e8ecff;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+      a {
+        color: #93c5fd;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      code,
+      kbd {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 22px;
+      }
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(7, 8, 15, 0.85);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+      }
+      .nav-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 22px;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      .brand {
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        font-size: 17px;
+      }
+      .brand .dot {
+        color: #38bdf8;
+      }
+      .nav-cta {
+        background: linear-gradient(135deg, #a5b4fc, #38bdf8);
+        color: #0b1020;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 13px;
+      }
+      .nav-cta:hover {
+        text-decoration: none;
+        filter: brightness(1.05);
+      }
 
-    :root {
-      --bg: #0a0a0f;
-      --bg2: #0f0f1a;
-      --card: #13131f;
-      --border: #1e1e35;
-      --purple: #7c3aed;
-      --purple-light: #a855f7;
-      --cyan: #06b6d4;
-      --green: #10b981;
-      --text: #e2e8f0;
-      --muted: #64748b;
-      --white: #ffffff;
-    }
+      .hero {
+        padding: 80px 0 60px;
+        text-align: left;
+        background:
+          radial-gradient(
+            1200px 420px at 80% -50px,
+            rgba(56, 189, 248, 0.18),
+            transparent 70%
+          ),
+          radial-gradient(
+            800px 320px at 10% 80%,
+            rgba(99, 102, 241, 0.16),
+            transparent 70%
+          );
+      }
+      .eyebrow {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: #93c5fd;
+        margin: 0 0 18px;
+        font-weight: 600;
+      }
+      h1 {
+        font-size: clamp(2.1rem, 4.6vw, 3.6rem);
+        line-height: 1.08;
+        letter-spacing: -0.025em;
+        margin: 0 0 18px;
+        font-weight: 800;
+      }
+      h1 .accent {
+        background: linear-gradient(135deg, #a5b4fc 0%, #38bdf8 60%, #4ade80 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .lead {
+        font-size: clamp(1.05rem, 1.6vw, 1.2rem);
+        color: rgba(232, 236, 255, 0.78);
+        max-width: 700px;
+        margin: 0 0 28px;
+      }
+      .cta-row {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 22px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+        border: 0;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, #a5b4fc, #38bdf8);
+        color: #0b1020;
+        box-shadow: 0 18px 40px rgba(56, 189, 248, 0.22);
+      }
+      .btn-primary:hover {
+        filter: brightness(1.05);
+        text-decoration: none;
+      }
+      .btn-ghost {
+        background: transparent;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        color: #e8ecff;
+      }
+      .pricing-tag {
+        font-size: 13px;
+        color: rgba(232, 236, 255, 0.6);
+      }
+      .pricing-tag s {
+        color: rgba(232, 236, 255, 0.4);
+        margin-right: 6px;
+      }
+      .pricing-tag strong {
+        color: #4ade80;
+      }
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      line-height: 1.6;
-    }
+      .console-mock {
+        margin: 50px auto 0;
+        max-width: 980px;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: linear-gradient(180deg, #0f172a 0%, #0a0f1e 100%);
+        box-shadow: 0 30px 80px rgba(15, 23, 42, 0.55);
+        overflow: hidden;
+      }
+      .mock-bar {
+        display: flex;
+        gap: 6px;
+        padding: 10px 14px;
+        background: rgba(2, 6, 23, 0.6);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+      }
+      .mock-bar span {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+      }
+      .mock-bar span:nth-child(1) {
+        background: #f87171;
+      }
+      .mock-bar span:nth-child(2) {
+        background: #facc15;
+      }
+      .mock-bar span:nth-child(3) {
+        background: #4ade80;
+      }
+      .mock-body {
+        padding: 26px;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 13px;
+        line-height: 1.65;
+        color: rgba(226, 232, 240, 0.88);
+      }
+      .mock-body .muted {
+        color: rgba(148, 163, 184, 0.7);
+      }
+      .mock-body .agent {
+        color: #93c5fd;
+        font-weight: 600;
+      }
+      .mock-body .ok {
+        color: #4ade80;
+      }
+      .mock-body .accent {
+        color: #fcd34d;
+      }
 
-    /* NAV */
-    nav {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1.2rem 2rem;
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      background: rgba(10,10,15,0.95);
-      backdrop-filter: blur(12px);
-      z-index: 100;
-    }
+      section {
+        padding: 70px 0;
+      }
+      h2 {
+        font-size: clamp(1.6rem, 2.8vw, 2.1rem);
+        letter-spacing: -0.02em;
+        margin: 0 0 18px;
+      }
+      h3 {
+        font-size: 1.05rem;
+        margin: 0 0 10px;
+        letter-spacing: -0.005em;
+      }
+      .section-lead {
+        color: rgba(232, 236, 255, 0.72);
+        max-width: 720px;
+        margin: 0 0 40px;
+      }
+      .grid-4 {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .grid-3 {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .grid-2 {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(2, 1fr);
+      }
+      @media (max-width: 900px) {
+        .grid-4 {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .grid-3,
+        .grid-2 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        background: rgba(15, 23, 42, 0.5);
+        padding: 22px;
+      }
+      .card .icon {
+        font-size: 20px;
+        margin-bottom: 14px;
+        display: inline-block;
+      }
+      .card p {
+        margin: 0;
+        color: rgba(232, 236, 255, 0.7);
+        font-size: 14px;
+      }
 
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      font-weight: 700;
-      font-size: 1.2rem;
-      color: var(--white);
-      text-decoration: none;
-    }
+      .compare {
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        overflow: hidden;
+      }
+      .compare-row {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr 1fr;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+      }
+      .compare-row:last-child {
+        border-bottom: 0;
+      }
+      .compare-row > div {
+        padding: 16px 18px;
+        font-size: 14px;
+      }
+      .compare-row.head > div {
+        background: rgba(2, 6, 23, 0.5);
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: rgba(199, 210, 254, 0.85);
+      }
+      .compare-row .yes {
+        color: #4ade80;
+        font-weight: 600;
+      }
+      .compare-row .no {
+        color: #f87171;
+      }
+      @media (max-width: 700px) {
+        .compare-row {
+          grid-template-columns: 1.2fr 1fr 1fr;
+          font-size: 13px;
+        }
+      }
 
-    .logo-icon {
-      width: 36px;
-      height: 36px;
-    }
+      .pricing-card {
+        max-width: 480px;
+        margin: 0 auto;
+        border-radius: 18px;
+        border: 1px solid rgba(99, 102, 241, 0.45);
+        background:
+          linear-gradient(
+            180deg,
+            rgba(99, 102, 241, 0.14) 0%,
+            rgba(15, 23, 42, 0.55) 100%
+          );
+        padding: 32px 28px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .pricing-card::before {
+        content: 'LAUNCH PRICE';
+        position: absolute;
+        top: 16px;
+        right: -32px;
+        transform: rotate(35deg);
+        background: #4ade80;
+        color: #052e16;
+        font-weight: 800;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        padding: 4px 38px;
+      }
+      .pricing-card .price {
+        font-size: 3.4rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        margin: 12px 0 6px;
+      }
+      .pricing-card .price .currency {
+        font-size: 1.6rem;
+        vertical-align: super;
+        margin-right: 4px;
+      }
+      .pricing-card .strike {
+        color: rgba(148, 163, 184, 0.55);
+        text-decoration: line-through;
+        margin-right: 10px;
+        font-size: 1.4rem;
+        font-weight: 600;
+      }
+      .pricing-card .sub {
+        color: rgba(232, 236, 255, 0.65);
+        font-size: 14px;
+        margin: 0 0 24px;
+      }
+      .pricing-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 26px;
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .pricing-list li {
+        font-size: 14px;
+        color: rgba(232, 236, 255, 0.82);
+        display: flex;
+        gap: 10px;
+      }
+      .pricing-list li::before {
+        content: '✓';
+        color: #4ade80;
+        font-weight: 700;
+      }
 
-    .nav-cta {
-      background: var(--purple);
-      color: white;
-      padding: 0.6rem 1.4rem;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 0.9rem;
-      transition: background 0.2s;
-    }
-    .nav-cta:hover { background: var(--purple-light); }
+      .faq-item {
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+        padding: 18px 0;
+      }
+      .faq-item summary {
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 16px;
+        outline: none;
+        list-style: none;
+      }
+      .faq-item summary::-webkit-details-marker {
+        display: none;
+      }
+      .faq-item summary::after {
+        content: '+';
+        float: right;
+        color: #93c5fd;
+        font-weight: 700;
+      }
+      .faq-item[open] summary::after {
+        content: '−';
+      }
+      .faq-item p {
+        margin: 12px 0 0;
+        color: rgba(232, 236, 255, 0.74);
+        font-size: 14.5px;
+      }
 
-    /* HERO */
-    .hero {
-      text-align: center;
-      padding: 5rem 2rem 4rem;
-      max-width: 860px;
-      margin: 0 auto;
-    }
-
-    .badge {
-      display: inline-block;
-      background: rgba(124,58,237,0.15);
-      border: 1px solid rgba(124,58,237,0.4);
-      color: var(--purple-light);
-      padding: 0.4rem 1rem;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      margin-bottom: 1.5rem;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
-    h1 {
-      font-size: clamp(2rem, 5vw, 3.5rem);
-      font-weight: 800;
-      line-height: 1.15;
-      color: var(--white);
-      margin-bottom: 1.5rem;
-    }
-
-    h1 span {
-      background: linear-gradient(135deg, var(--purple-light), var(--cyan));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .hero-sub {
-      font-size: 1.15rem;
-      color: var(--muted);
-      max-width: 620px;
-      margin: 0 auto 2.5rem;
-    }
-
-    /* PRODUCT VISUAL */
-    .product-visual {
-      margin: 0 auto 3rem;
-      max-width: 700px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .product-visual::before {
-      content: '';
-      position: absolute;
-      top: -60px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    .swarm-diagram {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .agent {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.3rem;
-    }
-
-    .agent-bubble {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.4rem;
-      border: 2px solid;
-      position: relative;
-    }
-
-    .agent-label {
-      font-size: 0.65rem;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .agent.researcher .agent-bubble { background: rgba(6,182,212,0.1); border-color: var(--cyan); }
-    .agent.strategist .agent-bubble { background: rgba(124,58,237,0.1); border-color: var(--purple); }
-    .agent.coder .agent-bubble { background: rgba(245,158,11,0.1); border-color: #f59e0b; }
-    .agent.executor .agent-bubble { background: rgba(239,68,68,0.1); border-color: #ef4444; }
-    .agent.critic .agent-bubble { background: rgba(168,85,247,0.1); border-color: var(--purple-light); }
-    .agent.synthesizer .agent-bubble { background: rgba(16,185,129,0.1); border-color: var(--green); }
-
-    .arrow {
-      color: var(--muted);
-      font-size: 1.2rem;
-      margin-top: -20px;
-    }
-
-    .diagram-label {
-      text-align: center;
-      margin-top: 1.5rem;
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-
-    .diagram-label strong { color: var(--text); }
-
-    /* PRICING */
-    .pricing-section {
-      max-width: 480px;
-      margin: 0 auto 5rem;
-      padding: 0 1rem;
-    }
-
-    .pricing-card {
-      background: var(--card);
-      border: 2px solid var(--purple);
-      border-radius: 20px;
-      padding: 2.5rem;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .pricing-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, var(--purple), var(--cyan));
-    }
-
-    .popular-badge {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      background: linear-gradient(135deg, var(--purple), var(--cyan));
-      color: white;
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 0.3rem 0.8rem;
-      border-radius: 999px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .price-old {
-      font-size: 1.1rem;
-      color: var(--muted);
-      text-decoration: line-through;
-      margin-bottom: 0.3rem;
-    }
-
-    .price-main {
-      font-size: 3.5rem;
-      font-weight: 800;
-      color: var(--white);
-      line-height: 1;
-      margin-bottom: 0.5rem;
-    }
-
-    .price-main sup { font-size: 1.5rem; vertical-align: super; }
-
-    .price-note {
-      font-size: 0.85rem;
-      color: var(--muted);
-      margin-bottom: 0.5rem;
-    }
-
-    .promo-banner {
-      background: rgba(16,185,129,0.1);
-      border: 1px solid rgba(16,185,129,0.3);
-      border-radius: 8px;
-      padding: 0.6rem 1rem;
-      margin: 1rem 0 1.5rem;
-      font-size: 0.85rem;
-      color: var(--green);
-      font-weight: 600;
-    }
-
-    .promo-banner code {
-      background: rgba(16,185,129,0.2);
-      padding: 0.1rem 0.4rem;
-      border-radius: 4px;
-      font-family: monospace;
-      letter-spacing: 0.1em;
-    }
-
-    .features-list {
-      list-style: none;
-      text-align: left;
-      margin: 1.5rem 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0.7rem;
-    }
-
-    .features-list li {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      font-size: 0.95rem;
-      color: var(--text);
-    }
-
-    .features-list li::before {
-      content: '✓';
-      color: var(--green);
-      font-weight: 700;
-      flex-shrink: 0;
-      width: 20px;
-      height: 20px;
-      background: rgba(16,185,129,0.15);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.75rem;
-      text-align: center;
-      line-height: 20px;
-    }
-
-    .cta-btn {
-      display: block;
-      width: 100%;
-      background: linear-gradient(135deg, var(--purple), var(--purple-light));
-      color: white;
-      padding: 1rem;
-      border-radius: 12px;
-      text-decoration: none;
-      font-weight: 700;
-      font-size: 1.05rem;
-      transition: opacity 0.2s, transform 0.2s;
-      margin-top: 1.5rem;
-    }
-
-    .cta-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-
-    .guarantee {
-      margin-top: 1rem;
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
-
-    /* FEATURES GRID */
-    .section {
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 4rem 2rem;
-    }
-
-    .section-title {
-      text-align: center;
-      font-size: clamp(1.5rem, 3vw, 2.2rem);
-      font-weight: 700;
-      color: var(--white);
-      margin-bottom: 0.75rem;
-    }
-
-    .section-sub {
-      text-align: center;
-      color: var(--muted);
-      margin-bottom: 3rem;
-      font-size: 1rem;
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.5rem;
-    }
-
-    .feature-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.5rem;
-      transition: border-color 0.2s;
-    }
-
-    .feature-card:hover { border-color: var(--purple); }
-
-    .feature-icon {
-      font-size: 1.8rem;
-      margin-bottom: 0.75rem;
-    }
-
-    .feature-card h3 {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--white);
-      margin-bottom: 0.5rem;
-    }
-
-    .feature-card p {
-      font-size: 0.88rem;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    /* FAQ */
-    .faq-list {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      max-width: 700px;
-      margin: 0 auto;
-    }
-
-    .faq-item {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.25rem 1.5rem;
-    }
-
-    .faq-item h4 {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--white);
-      margin-bottom: 0.5rem;
-    }
-
-    .faq-item p {
-      font-size: 0.875rem;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    /* FOOTER */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 2rem;
-      text-align: center;
-      color: var(--muted);
-      font-size: 0.85rem;
-    }
-
-    footer a { color: var(--purple-light); text-decoration: none; }
-
-    /* GLOW ANIMATION */
-    @keyframes pulse-glow {
-      0%, 100% { box-shadow: 0 0 20px rgba(124,58,237,0.3); }
-      50% { box-shadow: 0 0 40px rgba(124,58,237,0.6); }
-    }
-
-    .pricing-card { animation: pulse-glow 3s ease-in-out infinite; }
-
-    @media (max-width: 600px) {
-      .arrow { display: none; }
-      .swarm-diagram { gap: 0.75rem; }
-    }
-  </style>
-</head>
-<body>
-
-<!-- NAV -->
-<nav>
-  <a href="#" class="logo">
-    <svg class="logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="18" cy="18" r="17" stroke="#7c3aed" stroke-width="1.5"/>
-      <circle cx="18" cy="8" r="3.5" fill="#a855f7"/>
-      <circle cx="28" cy="14" r="3" fill="#06b6d4"/>
-      <circle cx="28" cy="24" r="3" fill="#f59e0b"/>
-      <circle cx="18" cy="29" r="3.5" fill="#10b981"/>
-      <circle cx="8" cy="24" r="3" fill="#ef4444"/>
-      <circle cx="8" cy="14" r="3" fill="#a855f7"/>
-      <circle cx="18" cy="18" r="4" fill="#7c3aed"/>
-      <line x1="18" y1="11.5" x2="18" y2="14" stroke="#7c3aed" stroke-width="1"/>
-      <line x1="25" y1="15.5" x2="22" y2="17" stroke="#7c3aed" stroke-width="1"/>
-      <line x1="25" y1="22.5" x2="22" y2="20" stroke="#7c3aed" stroke-width="1"/>
-      <line x1="18" y1="25.5" x2="18" y2="22" stroke="#7c3aed" stroke-width="1"/>
-      <line x1="11" y1="22.5" x2="14" y2="20" stroke="#7c3aed" stroke-width="1"/>
-      <line x1="11" y1="15.5" x2="14" y2="17" stroke="#7c3aed" stroke-width="1"/>
-    </svg>
-    AetherSwarm
-  </a>
-  <a href="demo.html" style="color:var(--cyan);text-decoration:none;font-size:0.9rem;font-weight:500;margin-right:0.5rem;" target="_blank">▶ Voir la démo</a>
-  <a href="#acheter" class="nav-cta">Acheter — 59€</a>
-</nav>
-
-<!-- HERO -->
-<section class="hero">
-  <div class="badge">⚡ Licence à vie — Paiement unique</div>
-  <h1>Ton <span>OS d'agents IA</span><br>en local sur ton PC</h1>
-  <p class="hero-sub">6 agents collaborent sur ta machine. Tu paies une fois. Tes agents tournent gratuitement sur Ollama. Rien ne sort sur Internet sans ta permission.</p>
-
-  <!-- SWARM DIAGRAM -->
-  <div class="product-visual">
-    <div class="swarm-diagram">
-      <div class="agent researcher">
-        <div class="agent-bubble">🔍</div>
-        <span class="agent-label">Researcher</span>
+      .footer {
+        border-top: 1px solid rgba(148, 163, 184, 0.1);
+        padding: 30px 0 50px;
+        color: rgba(148, 163, 184, 0.6);
+        font-size: 13px;
+      }
+      .footer .wrap {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 14px;
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(74, 222, 128, 0.12);
+        border: 1px solid rgba(74, 222, 128, 0.35);
+        color: #86efac;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="nav">
+      <div class="nav-inner">
+        <div class="brand"><a href="https://aetherstack.com" style="color: inherit; text-decoration: none">AetherStack</a> / Aether Swarm<span class="dot">.</span></div>
+        <a href="demo.html" style="color:#38bdf8;font-size:13px;font-weight:600;margin-right:12px;" target="_blank">▶ Démo live</a><a class="nav-cta lemonsqueezy-button" href="https://aether-labs.lemonsqueezy.com/checkout/buy/88c6c65d-fc73-45f3-9406-64473461b9a2?embed=1">Acheter — 39€</a>
       </div>
-      <div class="arrow">→</div>
-      <div class="agent strategist">
-        <div class="agent-bubble">🎯</div>
-        <span class="agent-label">Strategist</span>
+    </header>
+
+    <section class="hero">
+      <div class="wrap">
+        <span class="badge">v1 · early access</span>
+        <p class="eyebrow">OS d'agents IA — Local-first</p>
+        <h1>
+          6 agents IA qui collaborent<br />
+          sur ton PC.<br />
+          <span class="accent">Zéro abo. Une seule fois.</span>
+        </h1>
+        <p class="lead">
+          Aether Swarm est une console desktop multi-agents qui tourne sur ta
+          machine — Ollama, LangGraph, Chroma, Whisper. Tu paies la console une
+          seule fois. Tes LLM ne te coûtent plus 50€/mois de tokens.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#buy">Acheter Aether Swarm — 39€</a>
+          <a class="btn btn-ghost" href="#how">Comment ça marche</a>
+          <span class="pricing-tag">
+            <s>59€</s><strong>39€</strong> · prix early — 50 premières licences
+          </span>
+        </div>
+
+        <div class="console-mock" aria-hidden="true">
+          <div class="mock-bar">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="mock-body">
+            <div class="muted">› Mission #42 — "Stratégie GTM pour ma slice SaaS"</div>
+            <div><span class="agent">[Researcher]</span> snippets DDG → 12 sources analysées</div>
+            <div><span class="agent">[Strategist]</span> ICP candidat : créateurs FR ≤10k €/mo</div>
+            <div><span class="agent">[Coder]</span> draft landing + variants A/B suggérés</div>
+            <div><span class="agent">[Executor]</span> <span class="muted">(allowlist OK)</span> $ git status</div>
+            <div><span class="agent">[Critic]</span> hypothèse pricing à valider sur 5 entretiens</div>
+            <div><span class="agent">[Synthesizer]</span> <span class="ok">✓</span> rapport prêt — 3 actions claires</div>
+            <div class="muted">› Mémoire vectorielle : 6 turns vectorisés (Chroma)</div>
+            <div><span class="accent">⏱ 24s · 0 token cloud · 0,00 € dépensé</span></div>
+          </div>
+        </div>
       </div>
-      <div class="arrow">→</div>
-      <div class="agent coder">
-        <div class="agent-bubble">💻</div>
-        <span class="agent-label">Coder</span>
+    </section>
+
+    <section id="why">
+      <div class="wrap">
+        <h2>Pourquoi maintenant</h2>
+        <p class="section-lead">
+          En 2026, les coûts API LLM explosent. ChatGPT Plus, Claude Pro,
+          Cursor, Copilot — tu cumules 100-200€/mois pour des outils qui
+          appellent des serveurs distants. Aether Swarm change la règle : tes
+          agents tournent en local sur ton GPU/CPU, avec des modèles open
+          (Llama, Qwen, Mistral). Une fois la console achetée, ton coût IA
+          marginal tombe à zéro.
+        </p>
+
+        <div class="grid-4">
+          <div class="card">
+            <span class="icon">🔒</span>
+            <h3>Local-first</h3>
+            <p>
+              Tes données ne quittent jamais ton PC. Pas de cloud, pas de
+              télémétrie, pas de risque de fuite.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon">💸</span>
+            <h3>Zéro abo IA</h3>
+            <p>
+              Tu paies la console une fois. Tes agents tournent gratuitement
+              sur Ollama. Aucun token cloud facturé.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon">🧠</span>
+            <h3>Multi-agent visible</h3>
+            <p>
+              6 agents collaborent visiblement (LangGraph) : Researcher,
+              Strategist, Coder, Executor, Critic, Synthesizer.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon">💾</span>
+            <h3>Missions persistantes</h3>
+            <p>
+              Tu accumules un capital de missions et de mémoire vectorielle.
+              Pas juste une chat history éphémère.
+            </p>
+          </div>
+        </div>
       </div>
-      <div class="arrow">→</div>
-      <div class="agent executor">
-        <div class="agent-bubble">⚡</div>
-        <span class="agent-label">Executor</span>
+    </section>
+
+    <section id="how" style="background: rgba(15, 23, 42, 0.3)">
+      <div class="wrap">
+        <h2>Ce qui est dans le bundle</h2>
+        <p class="section-lead">
+          Tu télécharges un ZIP, tu extrais, tu double-cliques. La console
+          s'ouvre. Pas de SaaS, pas de compte cloud, pas de licence à
+          ré-activer chaque mois.
+        </p>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>Console dans ton navigateur</h3>
+            <p>
+              UI moderne (SvelteKit) servie par ton backend local · chat swarm ·
+              missions panel · streaming SSE · capture micro (Whisper local) ·
+              toggles mémoire / web / shell. Aucun paquet ne sort sur Internet.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Backend FastAPI</h3>
+            <p>
+              9 endpoints prêts : swarm, strategist, missions, memory, voice,
+              executor, content, newsletter, health. Configurable via
+              <code>.env</code>.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Swarm LangGraph 6 nœuds</h3>
+            <p>
+              Researcher → Strategist → Coder → Executor → Critic →
+              Synthesizer. Tournent sur Ollama (Llama 3, Qwen, Mistral — au
+              choix).
+            </p>
+          </div>
+          <div class="card">
+            <h3>Mémoire vectorielle Chroma</h3>
+            <p>
+              Tes échanges importants sont vectorisés en local. Le Researcher
+              peut requêter ta mémoire long-terme avant chaque mission.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Capture vocale Whisper</h3>
+            <p>
+              Bouton micro dans la console. Transcription locale via le binaire
+              Whisper. Aucun audio n'est envoyé à un serveur.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Executor shell (allowlist)</h3>
+            <p>
+              Laisse les agents lancer des commandes sur ta machine, avec une
+              allowlist stricte. Pour automatiser tes workflows de dev.
+            </p>
+          </div>
+        </div>
       </div>
-      <div class="arrow">→</div>
-      <div class="agent critic">
-        <div class="agent-bubble">🔬</div>
-        <span class="agent-label">Critic</span>
+    </section>
+
+    <section id="compare">
+      <div class="wrap">
+        <h2>Aether Swarm vs les SaaS IA</h2>
+        <p class="section-lead">
+          La différence n'est pas dans les fonctionnalités — c'est dans le
+          modèle économique et le contrôle.
+        </p>
+
+        <div class="compare">
+          <div class="compare-row head">
+            <div>&nbsp;</div>
+            <div>Aether Swarm</div>
+            <div>SaaS IA classique</div>
+          </div>
+          <div class="compare-row">
+            <div>Coût mensuel récurrent</div>
+            <div class="yes">0 €</div>
+            <div class="no">20-200 €/mo</div>
+          </div>
+          <div class="compare-row">
+            <div>Tes données restent locales</div>
+            <div class="yes">✓ jamais sorties</div>
+            <div class="no">envoyées au cloud</div>
+          </div>
+          <div class="compare-row">
+            <div>Tokens cloud facturés</div>
+            <div class="yes">0</div>
+            <div class="no">à chaque appel</div>
+          </div>
+          <div class="compare-row">
+            <div>Choix du modèle LLM</div>
+            <div class="yes">tout Ollama</div>
+            <div class="no">imposé</div>
+          </div>
+          <div class="compare-row">
+            <div>Architecture multi-agents visible</div>
+            <div class="yes">LangGraph 6 nœuds</div>
+            <div class="no">souvent caché</div>
+          </div>
+          <div class="compare-row">
+            <div>Tu possèdes ta mémoire</div>
+            <div class="yes">Chroma local</div>
+            <div class="no">leur DB</div>
+          </div>
+        </div>
       </div>
-      <div class="arrow">→</div>
-      <div class="agent synthesizer">
-        <div class="agent-bubble">✨</div>
-        <span class="agent-label">Synthesizer</span>
+    </section>
+
+    <section id="for-who" style="background: rgba(15, 23, 42, 0.3)">
+      <div class="wrap">
+        <div class="grid-2">
+          <div>
+            <h2>Pour qui c'est fait</h2>
+            <ul style="padding-left: 18px; color: rgba(232, 236, 255, 0.82); line-height: 1.9">
+              <li>Devs solopreneurs qui veulent multiplier leur output</li>
+              <li>Knowledge workers tech-savvy qui veulent garder leurs données</li>
+              <li>Consultants qui font tourner des analyses récurrentes</li>
+              <li>Toute personne déjà à l'aise avec Ollama et le terminal</li>
+            </ul>
+          </div>
+          <div>
+            <h2 style="color: #fca5a5">Pour qui ce n'est pas fait</h2>
+            <ul style="padding-left: 18px; color: rgba(232, 236, 255, 0.74); line-height: 1.9">
+              <li>Tu ne sais pas lancer un terminal ou installer Python</li>
+              <li>Tu veux un truc "ouvre, ça marche" sans rien comprendre</li>
+              <li>Ton PC fait moins de 8 Go de RAM</li>
+              <li>Tu cherches un wrapper ChatGPT — c'est l'inverse</li>
+            </ul>
+          </div>
+        </div>
       </div>
-    </div>
-    <p class="diagram-label"><strong>Pipeline complet en local</strong> — Un brief → 6 agents → Un livrable structuré</p>
-  </div>
-</section>
+    </section>
 
-<!-- FEATURES -->
-<section class="section">
-  <h2 class="section-title">Tout ce qui tourne sur ta machine</h2>
-  <p class="section-sub">Aucun abonnement. Aucune donnée envoyée. Ton IA, tes règles.</p>
-  <div class="features-grid">
-    <div class="feature-card">
-      <div class="feature-icon">🤖</div>
-      <h3>6 agents LangGraph</h3>
-      <p>Researcher, Strategist, Coder, Executor, Critic, Synthesizer. Chacun a un rôle précis. Ensemble ils livrent des résultats qu'un seul agent ne peut pas atteindre.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🧠</div>
-      <h3>Mémoire vectorielle Chroma</h3>
-      <p>Tes échanges sont vectorisés sur ton disque. Les missions suivantes profitent du contexte accumulé. Ta mémoire IA grandit avec toi.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🦙</div>
-      <h3>100% Ollama — zéro coût LLM</h3>
-      <p>Compatible Llama 3, Qwen, Mistral et tous les modèles Ollama. Tu changes de modèle en une ligne. Sans frais supplémentaires.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🔒</div>
-      <h3>Souveraineté totale</h3>
-      <p>Par défaut, rien ne sort sur Internet. Tu actives la recherche web (DuckDuckGo) ou Claude API toi-même, quand tu veux.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🖥️</div>
-      <h3>Console dans ton navigateur</h3>
-      <p>Interface SvelteKit servie localement sur port 8787. Propre, rapide, sans installation complexe. Double-clic sur start-aether.bat et c'est lancé.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🛡️</div>
-      <h3>Executor sécurisé</h3>
-      <p>L'agent qui exécute des commandes shell est protégé par une allowlist stricte. Aucune commande destructive possible. Tu contrôles ce qui s'exécute.</p>
-    </div>
-  </div>
-</section>
+    <section id="buy">
+      <div class="wrap">
+        <h2 style="text-align: center">Acheter Aether Swarm v1</h2>
+        <p class="section-lead" style="text-align: center; margin-left: auto; margin-right: auto">
+          Licence à vie. Une licence = un utilisateur. Pas de redistribution.
+          Produit indie livré tel quel — code Python en clair, à toi de l'opérer.
+        </p>
 
-<!-- PRICING -->
-<section class="section" id="acheter">
-  <h2 class="section-title">Un prix. Une fois. Pour toujours.</h2>
-  <p class="section-sub">Pas d'abonnement. Pas de piège. Licence à vie.</p>
+        <div class="pricing-card">
+          <div class="price">
+            <span class="strike">59€</span>
+            <span class="currency">€</span>39
+          </div>
+          <p class="sub">prix early — 50 premières licences</p>
+          <ul class="pricing-list">
+            <li>Console Aether Swarm (s'ouvre dans ton navigateur, 100% local)</li>
+            <li>Backend FastAPI + 6 agents LangGraph sur Ollama</li>
+            <li>Mémoire Chroma + Whisper local + Executor shell</li>
+            <li>INSTALL.md + start-aether.bat (lanceur 1-click Windows)</li>
+            <li>Code Python livré en clair, modifiable pour ton usage</li>
+            <li>Licence à vie, 1 utilisateur</li>
+          </ul>
+          <!-- LEMON SQUEEZY CHECKOUT — remplacer https://aether-labs.lemonsqueezy.com/checkout/buy/88c6c65d-fc73-45f3-9406-64473461b9a2?embed=1 par l'URL Product checkout réel après création du produit dimanche matin (cf docs/LEMON_PRODUCTS_CONFIG.md) -->
+          <a
+            class="btn btn-primary lemonsqueezy-button"
+            style="width: 100%; justify-content: center"
+            href="https://aether-labs.lemonsqueezy.com/checkout/buy/88c6c65d-fc73-45f3-9406-64473461b9a2?embed=1"
+            data-checkout="lemon-squeezy"
+          >
+            Acheter maintenant — 39€
+          </a>
+          <p class="sub" style="margin-top: 18px; font-size: 12px">
+            Paiement sécurisé · Lemon Squeezy · livraison immédiate par email
+          </p>
+        </div>
+      </div>
+    </section>
 
-  <div class="pricing-section">
-    <div class="pricing-card">
-      <div class="popular-badge">🔥 Offre de lancement</div>
-      <div class="price-old">79€</div>
-      <div class="price-main"><sup>€</sup>59</div>
-      <div class="price-note">paiement unique · licence à vie · 1 utilisateur</div>
+    <section id="faq">
+      <div class="wrap" style="max-width: 760px">
+        <h2>FAQ</h2>
 
+        <details class="faq-item">
+          <summary>Faut-il une connexion Internet pour utiliser Aether Swarm ?</summary>
+          <p>
+            Pour le téléchargement initial et pour installer Ollama, oui. Pour
+            l'usage quotidien, non — tout tourne en local. Le toggle "Web DDG"
+            est le seul appel sortant et il est optionnel.
+          </p>
+        </details>
 
-      <ul class="features-list">
-        <li>6 agents IA LangGraph complets</li>
-        <li>Mémoire vectorielle Chroma locale</li>
-        <li>Console SvelteKit (déjà compilée)</li>
-        <li>Backend FastAPI — code Python en clair</li>
-        <li>Executor shell sécurisé avec allowlist</li>
-        <li>Compatible Claude API (ta propre clé)</li>
-        <li>Lanceur 1-clic Windows (start-aether.bat)</li>
-        <li>Documentation complète (README, INSTALL, QUICKSTART)</li>
-        <li>Usage personnel ET commercial</li>
-      </ul>
+        <details class="faq-item">
+          <summary>Quel matériel pour faire tourner les agents ?</summary>
+          <p>
+            Minimum 8 Go de RAM, recommandé 16 Go. CPU récent (Ryzen / Intel
+            10e gen+). Un GPU NVIDIA accélère mais n'est pas requis. Les
+            modèles 3B-7B tournent confortablement en CPU.
+          </p>
+        </details>
 
-      <a href="https://aether-labs.lemonsqueezy.com/checkout/buy/88c6c65d-fc73-45f3-9406-64473461b9a2?embed=1" class="cta-btn lemonsqueezy-button">
-        Acheter AetherSwarm v1 — 59€ →
-      </a>
-      <p class="guarantee">🛡️ Satisfait ou remboursé 14 jours · Livraison ZIP instantanée</p>
-    </div>
-  </div>
-</section>
+        <details class="faq-item">
+          <summary>Est-ce que je peux modifier le code ?</summary>
+          <p>
+            Le code Python du backend et les prompts des agents sont fournis
+            en clair. Tu peux les modifier pour ton usage. La redistribution
+            ou la revente du code n'est pas autorisée.
+          </p>
+        </details>
 
-<!-- FAQ -->
-<section class="section">
-  <h2 class="section-title">Questions fréquentes</h2>
-  <div class="faq-list">
-    <div class="faq-item">
-      <h4>De quoi j'ai besoin pour démarrer ?</h4>
-      <p>Windows 10/11, Python 3.10+ (cocher "Add Python to PATH"), Ollama installé avec un modèle (`ollama pull llama3.2:3b`), 8 Go de RAM minimum. C'est tout.</p>
-    </div>
-    <div class="faq-item">
-      <h4>C'est quoi exactement Ollama ?</h4>
-      <p>Ollama est un outil gratuit qui fait tourner des LLMs (Llama, Mistral, Qwen...) directement sur ton PC. Pas de clé API, pas de frais. AetherSwarm l'utilise par défaut.</p>
-    </div>
-    <div class="faq-item">
-      <h4>Est-ce que mes données partent sur Internet ?</h4>
-      <p>Non. Par défaut tout tourne en local. Tu peux activer la recherche web (DuckDuckGo) ou Claude API volontairement si tu veux — mais c'est ton choix, pas celui du produit.</p>
-    </div>
-    <div class="faq-item">
-      <h4>Est-ce que je peux modifier le code ?</h4>
-      <p>Oui. Le code Python est livré en clair, modifiable pour ton usage personnel et commercial. Pas de redistribution ni de revente du code.</p>
-    </div>
-    <div class="faq-item">
-      <h4>Et si ça ne marche pas ?</h4>
-      <p>Satisfait ou remboursé 14 jours, sans question. Envoie un email à <a href="mailto:mindset22633@gmail.com" style="color: var(--purple-light)">mindset22633@gmail.com</a> et on rembourse.</p>
-    </div>
-  </div>
-</section>
+        <details class="faq-item">
+          <summary>Mac et Linux ?</summary>
+          <p>
+            Non, v1 est Windows uniquement.
+          </p>
+        </details>
 
-<!-- FOOTER -->
-<footer>
-  <p style="margin-bottom: 0.5rem;">
-    <strong style="color: var(--white)">AetherSwarm v1</strong> — Produit indie livré tel quel
-  </p>
-  <p>Support : <a href="mailto:mindset22633@gmail.com">mindset22633@gmail.com</a> · Bug critique reproductible → on répond sous 48h</p>
-  <p style="margin-top: 1rem; font-size: 0.78rem;">© 2026 AetherSwarm · Licence à vie 1 utilisateur · Droit de rétractation EU 14 jours</p>
-</footer>
+        <details class="faq-item">
+          <summary>Qu'est-ce qui se passe quand je ferme l'app ?</summary>
+          <p>
+            Le backend s'arrête proprement. Tes missions et ta mémoire Chroma
+            sont sauvegardées sur disque. Au prochain lancement, tout est là.
+          </p>
+        </details>
 
-<script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
-</body>
+        <details class="faq-item">
+          <summary>Comment je récupère ma licence après achat ?</summary>
+          <p>
+            Email immédiat après paiement (via Lemon Squeezy) avec le lien de téléchargement
+            du ZIP et ta clé de licence (si applicable). Si tu ne reçois rien
+            dans les 5 minutes, vérifie tes spams puis contacte-moi.
+          </p>
+        </details>
+
+        <details class="faq-item">
+          <summary>Et si le produit ne fonctionne pas chez moi ?</summary>
+          <p>
+            Conformément à la réglementation EU sur la vente à distance de biens
+            numériques, tu disposes d'un droit de rétractation de 14 jours
+            (sauf renoncement explicite avant téléchargement). Procédure via
+            Lemon Squeezy.
+          </p>
+        </details>
+
+        <details class="faq-item">
+          <summary>Y a-t-il du support après achat ?</summary>
+          <p>
+            C'est un produit indie livré tel quel. Pas de SAV formel ni de SLA.
+            Pour un bug critique reproductible, tu peux écrire à
+            <a href="mailto:support@aetherstack.com">support@aetherstack.com</a> —
+            réponse au mieux quand le temps le permet, pas garantie.
+          </p>
+        </details>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="wrap">
+        <div>
+          © 2026 <strong>AetherStack</strong> · Aether Swarm v1 · construit en France ·
+          <a href="mailto:support@aetherstack.com">support@aetherstack.com</a>
+        </div>
+        <div>
+          <a href="https://forge.aetherstack.com">Forge &amp; Pixel</a> ·
+          <a href="https://toolkit.aetherstack.com">AI Toolkit</a> ·
+          <a href="mailto:support@aetherstack.com?subject=Mentions%20l%C3%A9gales">Mentions légales</a>
+        </div>
+      </div>
+    </footer>
+  </body>
 </html>
