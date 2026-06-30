@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Dispatch, SetStateAction } from "react";
 
 /**
  * Generic hook that wraps useState with localStorage persistence.
  * Falls back silently to initialValue on JSON parse errors.
  */
-export function usePersistedState<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+export function usePersistedState<T>(key: string, initialValue: T): [T, Dispatch<SetStateAction<T>>] {
   const [state, setState] = useState<T>(() => {
     try {
       const stored = localStorage.getItem(key);
