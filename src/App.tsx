@@ -8,21 +8,13 @@ import SecureInbox from "./components/SecureInbox";
 import SandboxRP from "./components/SandboxRP";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  Compass,
-  DollarSign,
   TrendingUp,
   Mail,
   Cpu,
   Tv,
-  Users,
-  AlertOctagon,
   Award,
-  Radio,
   Clock,
-  ExternalLink,
   Flame,
-  Check,
-  AlertCircle,
   Server
 } from "lucide-react";
 
@@ -69,30 +61,50 @@ export default function App() {
   const [missionStatus, setMissionStatus] = useState<"idle" | "running" | "success" | "arrested">("idle");
   const [missionLog, setMissionLog] = useState<string>("");
 
+  // Helpers to update state
   const updateTelemetry = (updated: Telemetry) => {
-    setState(prev => ({ ...prev, telemetry: updated }));
+    setState(prev => ({
+      ...prev,
+      telemetry: updated
+    }));
   };
 
   const toggleSync = () => {
-    setState(prev => ({ ...prev, isOnline: !prev.isOnline }));
+    setState(prev => ({
+      ...prev,
+      isOnline: !prev.isOnline
+    }));
   };
 
   const updateEmpire = (updatedEmpire: GameState["empire"]) => {
-    setState(prev => ({ ...prev, empire: updatedEmpire }));
+    setState(prev => ({
+      ...prev,
+      empire: updatedEmpire
+    }));
   };
 
   const addChatMessage = (msg: ChatMessage) => {
-    setState(prev => ({ ...prev, chatHistory: [...prev.chatHistory, msg] }));
+    setState(prev => ({
+      ...prev,
+      chatHistory: [...prev.chatHistory, msg]
+    }));
   };
 
   const addContract = (contract: Contract) => {
-    setState(prev => ({ ...prev, contracts: [contract, ...prev.contracts] }));
+    setState(prev => ({
+      ...prev,
+      contracts: [contract, ...prev.contracts]
+    }));
   };
 
   const updateMessages = (updatedMessages: NPCMessage[]) => {
-    setState(prev => ({ ...prev, messages: updatedMessages }));
+    setState(prev => ({
+      ...prev,
+      messages: updatedMessages
+    }));
   };
 
+  // Insert manual notification in inbox
   const addInboxMessage = (
     sender: string,
     senderAvatar: string,
@@ -112,9 +124,14 @@ export default function App() {
       actionLabel: "Réparer les dégâts ($25,000)",
       rewardAmount: "Sécurité boostée"
     };
-    setState(prev => ({ ...prev, messages: [newMsg, ...prev.messages] }));
+
+    setState(prev => ({
+      ...prev,
+      messages: [newMsg, ...prev.messages]
+    }));
   };
 
+  // Simulated contract job runner
   const executeJobSimulation = (job: Contract) => {
     if (missionStatus === "running") return;
     setActiveMission(job);
@@ -122,6 +139,7 @@ export default function App() {
     setMissionProgress(0);
     setMissionLog(`[REVERB CORE] Planification de la mission: "${job.title}"...`);
 
+    // Dynamic progression logs
     setTimeout(() => {
       setMissionLog(`[REVERB CORE] Infiltration de Lucia & Jason dans la zone ${job.location}...`);
       setMissionProgress(30);
@@ -130,6 +148,7 @@ export default function App() {
     setTimeout(() => {
       setMissionLog(`[VCPD INTERCEPT] Rapport d'infraction reçu à ${job.location} ! Patrouilles en route.`);
       setMissionProgress(60);
+      // Spike search level temporarily during heist!
       setState(prev => ({
         ...prev,
         telemetry: { ...prev.telemetry, searchLevel: Math.min(prev.telemetry.searchLevel + 1, 5) }
@@ -137,38 +156,62 @@ export default function App() {
     }, 2500);
 
     setTimeout(() => {
+      // Risk check calculation
       const successChance = 100 - job.risk;
       const roll = Math.random() * 100;
 
       if (roll <= successChance) {
+        // Success!
         const parsedReward = parseInt(job.reward.replace(/[^0-9]/g, ""));
+        
         setState(prev => ({
           ...prev,
-          empire: { ...prev.empire, cashDirty: prev.empire.cashDirty + parsedReward },
-          telemetry: { ...prev.telemetry, ammo: Math.max(prev.telemetry.ammo - 35, 12), speed: 180 }
+          empire: {
+            ...prev.empire,
+            cashDirty: prev.empire.cashDirty + parsedReward
+          },
+          telemetry: {
+            ...prev.telemetry,
+            ammo: Math.max(prev.telemetry.ammo - 35, 12),
+            speed: 180
+          }
         }));
+
         setMissionStatus("success");
         setMissionProgress(100);
-        setMissionLog(`[SUCCÈS] Extraction terminée ! +${job.reward} de ressources brutes ajoutées à votre coffre-fort.`);
+        setMissionLog(`[SUCCÈS] Braquage terminé ! +${job.reward} sales ajoutés à votre coffre-fort.`);
+        
+        // Add random cool message to broker logs
         addChatMessage({
           id: `lisa_job_${Date.now()}`,
           role: "assistant",
-          content: `⚡ RAPPORT TACTIQUE : Félicitations Chef ! L'opération "${job.title}" à ${job.location} s'est terminée sans anicroche. ${job.reward} de ressources brutes ont été téléversées. Préparez la conversion au Malibu Club pour sécuriser les flux.`,
+          content: `⚡ RAPPORT TACTIQUE : Félicitations Chef ! Le coup "${job.title}" à ${job.location} s'est terminé sans anicroche. Les fonds de ${job.reward} sales ont été téléversés. Préparez le blanchiment dans le Malibu Club pour dissimuler la trace.`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
       } else {
+        // Arrested / Busted! Fines clean cash and sets alert to max!
         setState(prev => ({
           ...prev,
-          empire: { ...prev.empire, cashClean: Math.max(prev.empire.cashClean - 50000, 0) },
-          telemetry: { ...prev.telemetry, searchLevel: 5, health: 25, armor: 0 }
+          empire: {
+            ...prev.empire,
+            cashClean: Math.max(prev.empire.cashClean - 50000, 0)
+          },
+          telemetry: {
+            ...prev.telemetry,
+            searchLevel: 5,
+            health: 25,
+            armor: 0
+          }
         }));
+
         setMissionStatus("arrested");
         setMissionProgress(100);
-        setMissionLog(`[ÉCHEC] BUSTED ! Jason a été intercepté par le SWAT. Frais d'extraction payés : $50,000 raffinés.`);
+        setMissionLog(`[ÉCHEC] BUSTED ! Jason a été intercepté par le SWAT. Caution payée : $50,000 propres.`);
+
         addChatMessage({
           id: `lisa_job_fail_${Date.now()}`,
           role: "assistant",
-          content: `🚨 ALERTE CRITIQUE : Jason ou Lucia a été repéré par le shérif de Leonida pendant l'exécution de "${job.title}". J'ai dû utiliser $50,000 de ressources raffinées en frais d'extraction d'urgence. Faites profil bas, le niveau d'alerte a atteint son paroxysme !`,
+          content: `🚨 ALERTE CRITIQUE : Jason ou Lucia a été repéré par le shérif de Leonida pendant l'exécution de "${job.title}". J'ai dû blanchir $50,000 en urgence de caution. Faites profil bas, le niveau d'alerte a atteint son paroxysme !`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
       }
@@ -182,57 +225,69 @@ export default function App() {
     setMissionLog("");
   };
 
+  const unreadCount = state.messages.filter(m => !m.decrypted || m.actionRequired && !m.actionCompleted).length;
+
   return (
     <div className="min-h-screen bg-reverb-dark text-white font-sans crt-grid flex flex-col justify-between">
-      <header className="bg-reverb-card border-b border-reverb-pink/30 p-4 sticky top-0 z-50 shadow-glow-pink">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="bg-reverb-pink/15 p-2 rounded border border-reverb-pink/30 shadow-glow-pink animate-pulse">
-              <Cpu className="w-5.5 h-5.5 text-reverb-pink" />
+      {/* Immersive Top Bar */}
+      <header className="bg-reverb-card border-b border-reverb-pink/30 px-4 py-3 sticky top-0 z-50 shadow-glow-pink">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+
+          {/* Logo Title */}
+          <div className="flex items-center space-x-2.5">
+            <div className="bg-reverb-pink/15 p-1.5 rounded border border-reverb-pink/30 shadow-glow-pink animate-pulse">
+              <Cpu className="w-5 h-5 text-reverb-pink" />
             </div>
             <div>
-              <h1 className="font-display font-extrabold text-lg tracking-wider text-white flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-base tracking-wider text-white flex items-center gap-2">
                 SYSTÈME <span className="text-reverb-pink drop-shadow-[0_0_8px_rgba(255,42,116,0.8)]">REVERB</span>
-                <span className="text-xs font-mono font-normal bg-reverb-cyan/10 text-reverb-cyan px-2 py-0.5 rounded border border-reverb-cyan/20">
+                <span className="hidden sm:inline text-xs font-mono font-normal bg-reverb-cyan/10 text-reverb-cyan px-2 py-0.5 rounded border border-reverb-cyan/20">
                   V2.0.0
                 </span>
               </h1>
-              <p className="text-[10px] text-gray-400 font-mono">
+              <p className="hidden sm:block text-[10px] text-gray-400 font-mono">
                 CONSOLE INVERSIVE DE SÉCURITÉ DE VICE CITY
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-6 text-xs font-mono">
-            <div className="hidden sm:block">
+          {/* Connected Quick Telemetry Bar */}
+          <div className="flex items-center gap-3 sm:gap-6 text-xs font-mono">
+            <div className="hidden md:block">
               <span className="text-gray-500 text-[10px] block">FLUX TÉLÉMÉTRIQUE</span>
               <span className={`font-bold flex items-center gap-1 ${state.isOnline ? "text-reverb-cyan" : "text-reverb-pink"}`}>
                 <span className={`w-2 h-2 rounded-full inline-block ${state.isOnline ? "bg-reverb-cyan animate-pulse" : "bg-reverb-pink"}`}></span>
-                {state.isOnline ? "SYNC_OK" : "SYNC_INTERRUPTED"}
+                {state.isOnline ? "SYNC_OK" : "OFFLINE"}
               </span>
             </div>
+
             <div>
-              <span className="text-gray-500 text-[10px] block">RESSOURCES TOTALES EMPIRE</span>
-              <span className="text-white font-bold text-sm">
+              <span className="text-gray-500 text-[9px] sm:text-[10px] block">RESSOURCES TOTALES</span>
+              <span className="text-white font-bold text-xs sm:text-sm">
                 ${(state.empire.cashClean + state.empire.cashDirty).toLocaleString()}
               </span>
             </div>
+
             <div>
-              <span className="text-gray-500 text-[10px] block">ALERTE VCPD</span>
+              <span className="text-gray-500 text-[9px] sm:text-[10px] block">VCPD</span>
               <span className="text-reverb-pink font-bold flex items-center gap-1">
-                <Flame className="w-4.5 h-4.5 text-reverb-pink fill-reverb-pink animate-bounce" />
-                {state.telemetry.searchLevel} / 5 ETOILES
+                <Flame className="w-4 h-4 text-reverb-pink fill-reverb-pink animate-bounce" />
+                <span className="text-xs">{state.telemetry.searchLevel}/5</span>
               </span>
             </div>
           </div>
+
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-4 md:p-6 w-full flex-grow space-y-6">
-        <div className="flex flex-wrap bg-reverb-card border border-gray-800 p-1.5 rounded-lg font-mono text-xs gap-1 max-w-4xl">
+      {/* Main Container */}
+      <main className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6 w-full flex-grow space-y-4 sm:space-y-6 pb-20 sm:pb-6">
+
+        {/* Navigation Tabs — desktop only */}
+        <div className="hidden sm:flex flex-wrap bg-reverb-card border border-gray-800 p-1.5 rounded-lg font-mono text-xs gap-1 max-w-4xl">
           <button
             onClick={() => setActiveTab("telemetry")}
-            className={`flex-1 min-w-[120px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 ${
+            className={`flex-1 min-w-[110px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 ${
               activeTab === "telemetry"
                 ? "bg-reverb-cyan text-black font-extrabold shadow-glow-cyan"
                 : "text-gray-400 hover:text-white hover:bg-reverb-dark/40"
@@ -242,7 +297,7 @@ export default function App() {
           </button>
           <button
             onClick={() => setActiveTab("empire")}
-            className={`flex-1 min-w-[120px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 ${
+            className={`flex-1 min-w-[110px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 ${
               activeTab === "empire"
                 ? "bg-reverb-pink text-white font-extrabold shadow-glow-pink"
                 : "text-gray-400 hover:text-white hover:bg-reverb-dark/40"
@@ -252,17 +307,22 @@ export default function App() {
           </button>
           <button
             onClick={() => setActiveTab("inbox")}
-            className={`flex-1 min-w-[120px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 ${
+            className={`flex-1 min-w-[110px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 relative ${
               activeTab === "inbox"
                 ? "bg-reverb-pink text-white font-extrabold shadow-glow-pink"
                 : "text-gray-400 hover:text-white hover:bg-reverb-dark/40"
             }`}
           >
             <Mail className="w-4 h-4" /> Messagerie
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-reverb-pink text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )}
           </button>
           <button
             onClick={() => setActiveTab("sandbox")}
-            className={`flex-1 min-w-[140px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 relative overflow-hidden ${
+            className={`flex-1 min-w-[130px] py-2.5 rounded font-bold transition flex items-center justify-center gap-1.5 relative overflow-hidden ${
               activeTab === "sandbox"
                 ? "bg-reverb-cyan text-black font-extrabold shadow-glow-cyan"
                 : "text-gray-200 bg-reverb-cyan/10 border border-reverb-cyan/30 hover:text-white hover:bg-reverb-cyan/20"
@@ -276,24 +336,26 @@ export default function App() {
           </button>
         </div>
 
-        <div className="bg-gradient-to-r from-reverb-cyan/20 to-reverb-pink/20 border border-reverb-cyan/30 p-3.5 rounded-lg font-mono text-xs flex flex-col sm:flex-row items-center justify-between gap-3 shadow-glow-cyan/10 animate-pulse">
+        {/* Sandbox Notification Banner — hidden on mobile to save space */}
+        <div className="hidden sm:flex bg-gradient-to-r from-reverb-cyan/20 to-reverb-pink/20 border border-reverb-cyan/30 p-3.5 rounded-lg font-mono text-xs flex-col sm:flex-row items-center justify-between gap-3 shadow-glow-cyan/10">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-2.5 w-2.5 relative">
+            <span className="flex h-2.5 w-2.5 relative shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-reverb-cyan opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-reverb-cyan"></span>
             </span>
             <p className="text-gray-200">
-              ⚡ <strong className="text-reverb-cyan">CONSOLE REVERB ACTIVE :</strong> Le simulateur de serveurs <strong>Sandbox RP</strong> en monde ouvert est opérationnel. Modifiez les règles, créez des citoyens IA ou générez des guerres de gangs à la volée !
+              ⚡ <strong className="text-reverb-cyan">CONSOLE REVERB ACTIVE :</strong> Le simulateur <strong>Sandbox RP</strong> est opérationnel. Modifiez les règles, créez des citoyens IA ou générez des guerres de gangs !
             </p>
           </div>
-          <button 
+          <button
             onClick={() => setActiveTab("sandbox")}
-            className="text-[10px] bg-reverb-cyan hover:bg-reverb-cyan/80 text-black px-3 py-1.5 rounded font-bold uppercase tracking-wider transition"
+            className="shrink-0 text-[10px] bg-reverb-cyan hover:bg-reverb-cyan/80 text-black px-3 py-1.5 rounded font-bold uppercase tracking-wider transition"
           >
-            Accéder à l'Éditeur RP
+            Éditeur RP
           </button>
         </div>
 
+        {/* Dynamic Views Rendering with Animations */}
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -340,6 +402,7 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
 
+        {/* Live Active Mission Simulation Overlay HUD */}
         {activeMission && (
           <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-reverb-card border border-reverb-pink/50 rounded-lg p-6 max-w-md w-full font-mono text-xs space-y-4 shadow-glow-pink">
@@ -349,13 +412,15 @@ export default function App() {
                 </span>
                 <span className="text-[10px] text-gray-500">REVERB SIM v2.0</span>
               </div>
+
               <div className="space-y-1">
                 <h3 className="font-display font-bold text-white text-base">{activeMission.title}</h3>
                 <p className="text-gray-400 text-[11px]">{activeMission.description}</p>
               </div>
+
               <div className="grid grid-cols-2 gap-3 text-[11px] p-2.5 bg-reverb-dark rounded border border-gray-800">
                 <div>
-                  <span className="text-gray-500">RÉCOMPENSE EXTRACTION :</span>
+                  <span className="text-gray-500">RÉCOMPENSE SALES :</span>
                   <span className="block font-bold text-emerald-400 text-sm">{activeMission.reward}</span>
                 </div>
                 <div>
@@ -363,6 +428,8 @@ export default function App() {
                   <span className="block font-bold text-reverb-pink text-sm">{activeMission.risk}%</span>
                 </div>
               </div>
+
+              {/* Progress logs terminal */}
               <div className="bg-reverb-dark p-3.5 rounded border border-gray-900 h-28 overflow-y-auto text-reverb-cyan text-[11px] font-mono leading-relaxed space-y-1 scrollbar-thin">
                 <div>{missionLog}</div>
                 {missionProgress > 0 && (
@@ -371,6 +438,8 @@ export default function App() {
                   </div>
                 )}
               </div>
+
+              {/* Action button */}
               <div className="flex justify-end gap-2 pt-2 border-t border-gray-900">
                 {missionStatus !== "running" && (
                   <button
@@ -390,13 +459,15 @@ export default function App() {
           </div>
         )}
 
+        {/* Global Active Contracts Board / Deck Section */}
         <div className="p-5 bg-reverb-card border border-gray-800 rounded-lg space-y-4">
           <div className="flex justify-between items-center border-b border-gray-800 pb-2">
             <h2 className="font-display font-semibold text-white text-base flex items-center gap-2">
               <Award className="w-4.5 h-4.5 text-reverb-pink" /> MISSIONS & CONTRATS ACTIFS
             </h2>
-            <span className="text-xs font-mono text-gray-500">REVERB CONTRACTS BOARD</span>
+            <span className="hidden sm:block text-xs font-mono text-gray-500">REVERB CONTRACTS BOARD</span>
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {state.contracts.map((job) => (
               <div
@@ -418,14 +489,19 @@ export default function App() {
                       {job.difficulty}
                     </span>
                   </div>
+
                   <h4 className="font-display font-bold text-white text-sm">{job.title}</h4>
-                  <p className="text-[11px] text-gray-400 font-mono leading-relaxed mt-1">{job.description}</p>
+                  <p className="text-[11px] text-gray-400 font-mono leading-relaxed mt-1">
+                    {job.description}
+                  </p>
                 </div>
+
                 <div className="border-t border-gray-900 pt-3 flex justify-between items-center">
                   <div>
                     <span className="text-[9px] text-gray-500 font-mono block">RÉCOMPENSE</span>
                     <span className="font-bold text-emerald-400 font-display text-sm">{job.reward}</span>
                   </div>
+
                   <button
                     onClick={() => executeJobSimulation(job)}
                     disabled={missionStatus === "running"}
@@ -438,8 +514,46 @@ export default function App() {
             ))}
           </div>
         </div>
+
       </main>
 
+      {/* Mobile Bottom Navigation */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-reverb-card border-t border-reverb-pink/30 flex items-stretch h-16 shadow-[0_-4px_24px_rgba(255,42,116,0.15)]">
+        {[
+          { id: "telemetry" as const, icon: Tv, label: "Écran" },
+          { id: "empire" as const, icon: TrendingUp, label: "Empire" },
+          { id: "inbox" as const, icon: Mail, label: "Messages", badge: unreadCount },
+          { id: "sandbox" as const, icon: Server, label: "Sandbox", live: true },
+        ].map(({ id, icon: Icon, label, badge, live }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-all ${
+              activeTab === id
+                ? "text-reverb-pink"
+                : "text-gray-500 hover:text-gray-300"
+            }`}
+          >
+            {activeTab === id && (
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-reverb-pink rounded-b-full" />
+            )}
+            <div className="relative">
+              <Icon className={`w-5 h-5 ${live ? "animate-pulse" : ""}`} />
+              {badge ? (
+                <span className="absolute -top-1.5 -right-1.5 bg-reverb-pink text-white text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
+                  {badge}
+                </span>
+              ) : null}
+              {live && activeTab !== id && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-reverb-cyan rounded-full animate-pulse" />
+              )}
+            </div>
+            <span className="text-[9px] font-mono font-semibold uppercase tracking-wider">{label}</span>
+          </button>
+        ))}
+      </nav>
+
+      {/* Retro aesthetic Footer */}
       <footer className="bg-reverb-card border-t border-gray-900 p-5 font-mono text-center text-xs text-gray-500 mt-8">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-[10px]">
