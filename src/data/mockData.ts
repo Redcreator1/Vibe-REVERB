@@ -54,7 +54,7 @@ export const INITIAL_CONTRACTS: Contract[] = [
     client: "Lucia",
     reward: "$45,000",
     difficulty: "Facile",
-    description: "Transporter la marchandise de contrebande depuis le port jusqu'à la planque de Starfish Island sans attirer l'attention.",
+    description: "Transporter la marchandise stratégique depuis le port jusqu'à la planque de Starfish Island sans attirer l'attention.",
     risk: 15,
     location: "Starfish Island"
   }
@@ -66,7 +66,7 @@ export const INITIAL_MESSAGES: NPCMessage[] = [
     sender: "Lucia",
     senderAvatar: "L",
     subject: "Planque de Vice Beach sous surveillance ?",
-    body: "Salut, j'ai vu deux bagnoles banalisées rôder près de notre entrepôt de Vice Beach ce matin. On devrait temporairement geler le blanchiment là-bas ou booster la sécurité. L.I.S.A. peut recalculer le niveau de risque pour nous ?",
+    body: "Salut, j'ai vu deux bagnoles banalisées rôder près de notre entrepôt de Vice Beach ce matin. On devrait temporairement suspendre la conversion de flux là-bas ou booster la sécurité. L.I.S.A. peut recalculer le niveau de risque pour nous ?",
     time: "Il y a 10 min",
     decrypted: true,
     actionRequired: true,
@@ -144,7 +144,7 @@ export const INITIAL_STATE: GameState = {
       },
       {
         id: "ent_3",
-        name: "Contrebande Portuaire",
+        name: "Cargo Portuaire",
         type: "cargo",
         location: "Port Gellhorn",
         incomePerMin: 150,
@@ -172,7 +172,7 @@ export const INITIAL_STATE: GameState = {
     {
       id: "ch_init",
       role: "assistant",
-      content: "Système REVERB v2.0.0 initialisé. Réseau sécurisé établi. Bonjour Chef. Tous les serveurs de blanchiment et d'écoute télémétrique sont synchronisés. Que souhaitez-vous analyser ?",
+      content: "Système REVERB v2.0.0 initialisé. Réseau sécurisé établi. Bonjour Chef. Tous les serveurs de conversion de flux et d'écoute télémétrique sont synchronisés. Que souhaitez-vous analyser ?",
       timestamp: "01:36"
     }
   ]
