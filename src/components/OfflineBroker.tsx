@@ -28,9 +28,6 @@ export default function OfflineBroker({
   const amountFactor = Math.min((launderingAmount / 150000) * 45, 45);
   const calculatedRisk = Math.round(securityFactor + amountFactor);
 
-  // Keep a stable ref to the latest empire state and callback so the interval
-  // reads current values without being listed as deps (which would re-register
-  // the interval on every tick whenever passive income updates the empire).
   const empireRef = useRef(gameState.empire);
   useEffect(() => {
     empireRef.current = gameState.empire;
@@ -41,16 +38,13 @@ export default function OfflineBroker({
     onUpdateEmpireRef.current = onUpdateEmpire;
   }, [onUpdateEmpire]);
 
-  // Auto-generate passive pending cash for fun
   useEffect(() => {
     const timer = setInterval(() => {
       const { enterprises: ents, cashDirty: cd, cashClean: cc, cryptoBalance: cb } = empireRef.current;
       const updatedEnterprises = ents.map(ent => {
         if (ent.status !== "active") return ent;
-        // Increase dirty stock and pending clean cash slightly
         const stockIncrease = Math.random() > 0.6 ? 1 : 0;
         const newStock = Math.min(ent.dirtyStock + stockIncrease, 100);
-        // Every stock increase adds clean pending
         const cashIncrease = stockIncrease > 0 ? Math.floor(Math.random() * 200 + 100) : 0;
         return {
           ...ent,
@@ -67,12 +61,11 @@ export default function OfflineBroker({
     }, 8000);
 
     return () => clearInterval(timer);
-  }, []); // stable: reads empire via ref, no deps needed
+  }, []);
 
-  // Execute money laundering process
   const startLaundering = () => {
     if (cashDirty < launderingAmount) {
-      setFeedback({ type: "error", msg: "Fonds sales insuffisants pour cette opération." });
+      setFeedback({ type: "error", msg: "Ressources brutes insuffisantes pour cette opération." });
       return;
     }
     if (launderingAmount <= 0) {
@@ -84,7 +77,6 @@ export default function OfflineBroker({
     setLaunderingProgress(0);
     setFeedback({ type: "info", msg: `Initialisation du transfert via les comptes du ${selectedEnterprise.name}...` });
 
-    // Deduct dirty money upfront
     onUpdateEmpire({
       ...gameState.empire,
       cashDirty: cashDirty - launderingAmount
@@ -94,14 +86,11 @@ export default function OfflineBroker({
   const completeLaundering = () => {
     setIsLaundering(false);
     
-    // Risk check - chance to trigger a raid or police fine
     const successThreshold = 100 - calculatedRisk;
     const roll = Math.random() * 100;
 
     if (roll > successThreshold) {
-      // Failed! Police seized 40% of the laundering amount and security dropped!
       const fine = Math.round(launderingAmount * 0.4);
-      const lost = launderingAmount - fine;
       
       const updatedEnterprises = enterprises.map(ent => {
         if (ent.id === selectedEnterpriseId) {
@@ -116,16 +105,15 @@ export default function OfflineBroker({
 
       onUpdateEmpire({
         ...gameState.empire,
-        cashClean: cashClean + fine, // only partial returned
+        cashClean: cashClean + fine,
         enterprises: updatedEnterprises
       });
 
       setFeedback({
         type: "error",
-        msg: `🚨 ALERTE VCPD ! L'opération a été repérée. ${fine.toLocaleString()}$ ont été sauvés, mais la police a saisi le reste et dégradé la sécurité du ${selectedEnterprise.name}.`
+        msg: `🚨 ALERTE VCPD ! L'opération a été détectée. ${fine.toLocaleString()}$ ont été récupérés, mais la VCPD a intercepté le reste et dégradé la sécurité du ${selectedEnterprise.name}.`
       });
 
-      // Add warning message in inbox
       onAddMessage(
         "L.I.S.A.",
         "A",
@@ -135,7 +123,6 @@ export default function OfflineBroker({
       );
 
     } else {
-      // Success! Laundering tax of 10% is applied by L.I.S.A.
       const cleanedNet = Math.round(launderingAmount * 0.9);
       
       onUpdateEmpire({
@@ -145,19 +132,16 @@ export default function OfflineBroker({
 
       setFeedback({
         type: "success",
-        msg: `💸 TRANSACTION FINISALISÉE ! ${cleanedNet.toLocaleString()}$ propres ont été transférés sur votre compte off-shore (Frais L.I.S.A. : 10%).`
+        msg: `💸 CONVERSION FINALISÉE ! ${cleanedNet.toLocaleString()}$ raffinés ont été transférés sur votre compte off-shore (Commission L.I.S.A. : 10%).`
       });
     }
   };
 
-  // Keep a stable ref to completeLaundering so the progress effect always
-  // calls the latest closure (with current calculatedRisk / launderingAmount).
   const completeLaunderingRef = useRef(completeLaundering);
   useEffect(() => {
     completeLaunderingRef.current = completeLaundering;
   });
 
-  // Progress animation ticker — only active while a laundering op is running
   useEffect(() => {
     if (!isLaundering) return;
 
@@ -168,14 +152,12 @@ export default function OfflineBroker({
     return () => clearInterval(intervalId);
   }, [isLaundering]);
 
-  // Trigger completeLaundering exactly once when progress reaches 100
   useEffect(() => {
     if (isLaundering && launderingProgress >= 100) {
       completeLaunderingRef.current();
     }
   }, [isLaundering, launderingProgress]);
 
-  // Collect passive cash from a property
   const collectDividends = (entId: string) => {
     const ent = enterprises.find(e => e.id === entId);
     if (!ent || ent.cleanCashPending <= 0) return;
@@ -201,14 +183,13 @@ export default function OfflineBroker({
     });
   };
 
-  // Upgrade security of a property
   const upgradeSecurity = (entId: string) => {
     const ent = enterprises.find(e => e.id === entId);
     if (!ent) return;
     
     const cost = ent.securityLevel * 20000;
     if (cashClean < cost) {
-      setFeedback({ type: "error", msg: `Fonds propres insuffisants pour améliorer la sécurité (Requis: ${cost.toLocaleString()}$)` });
+      setFeedback({ type: "error", msg: `Ressources raffinées insuffisantes pour améliorer la sécurité (Requis: ${cost.toLocaleString()}$)` });
       return;
     }
 
@@ -242,7 +223,7 @@ export default function OfflineBroker({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-4 bg-reverb-card border border-reverb-pink/30 rounded-lg flex items-center justify-between">
           <div>
-            <span className="text-xs font-mono text-reverb-pink uppercase block tracking-wider">FONDS SALES (DIRTY STOCK)</span>
+            <span className="text-xs font-mono text-reverb-pink uppercase block tracking-wider">RESSOURCES BRUTES (STOCK RAW)</span>
             <span className="text-xl font-display font-bold text-white tracking-tight">
               ${cashDirty.toLocaleString()}
             </span>
@@ -254,7 +235,7 @@ export default function OfflineBroker({
 
         <div className="p-4 bg-reverb-card border border-reverb-cyan/30 rounded-lg flex items-center justify-between">
           <div>
-            <span className="text-xs font-mono text-reverb-cyan uppercase block tracking-wider">FONDS NETS PROPRES (OFFSHORE)</span>
+            <span className="text-xs font-mono text-reverb-cyan uppercase block tracking-wider">RESSOURCES RAFFINÉES (OFFSHORE)</span>
             <span className="text-xl font-display font-bold text-white tracking-tight">
               ${cashClean.toLocaleString()}
             </span>
@@ -282,9 +263,9 @@ export default function OfflineBroker({
         <div className="lg:col-span-1 p-5 bg-reverb-card border border-reverb-pink/20 rounded-lg space-y-5">
           <div className="border-b border-reverb-pink/10 pb-2">
             <h2 className="font-display font-semibold text-reverb-pink text-base flex items-center gap-2">
-              <RefreshCw className="w-4 h-4 animate-spin text-reverb-pink" /> LAUNCH LAUNDERING PROCESS
+              <RefreshCw className="w-4 h-4 animate-spin text-reverb-pink" /> CONVERSION DE RESSOURCES
             </h2>
-            <p className="text-xs text-gray-400 font-mono mt-0.5">Blanchiment de fonds d'Empire</p>
+            <p className="text-xs text-gray-400 font-mono mt-0.5">Raffinage de flux d'Empire</p>
           </div>
 
           {/* Amount slider */}
@@ -311,7 +292,7 @@ export default function OfflineBroker({
 
           {/* Enterprise selector */}
           <div className="space-y-2">
-            <label className="block text-xs font-mono text-gray-400">CANAL DE LESSIVAGE</label>
+            <label className="block text-xs font-mono text-gray-400">CANAL DE CONVERSION</label>
             <select
               value={selectedEnterpriseId}
               disabled={isLaundering}
@@ -376,7 +357,7 @@ export default function OfflineBroker({
                 : "bg-reverb-pink hover:bg-reverb-pink/80 text-white shadow-glow-pink"
             }`}
           >
-            {isLaundering ? "LESSIVAGE EN COURS..." : "Blanchir Fonds Sales"}
+            {isLaundering ? "CONVERSION EN COURS..." : "Convertir Ressources"}
           </button>
 
           {/* Notifications feed inside panel */}
@@ -398,7 +379,7 @@ export default function OfflineBroker({
           <div className="p-5 bg-reverb-card border border-reverb-cyan/20 rounded-lg space-y-4">
             <div className="flex justify-between items-center border-b border-reverb-cyan/10 pb-2">
               <h2 className="font-display font-semibold text-reverb-cyan text-base flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-reverb-cyan" /> EMPIRE CRIMINEL ACTIF (VIRTUAL BOARD)
+                <TrendingUp className="w-4 h-4 text-reverb-cyan" /> EMPIRE ÉCONOMIQUE ACTIF (VIRTUAL BOARD)
               </h2>
               <span className="text-xs font-mono text-gray-400">DIVIDENDES GENERES EN CONTINU</span>
             </div>
@@ -427,10 +408,9 @@ export default function OfflineBroker({
                         </span>
                       </div>
 
-                      {/* Progress and security trackers */}
                       <div className="grid grid-cols-2 gap-3 mt-3.5 font-mono text-xs">
                         <div>
-                          <span className="text-gray-500 block text-[9px]">STOCK ILLÉGAL</span>
+                          <span className="text-gray-500 block text-[9px]">STOCK BRUT</span>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span className="font-bold text-white">{ent.dirtyStock}%</span>
                             <div className="w-12 bg-gray-900 h-1.5 rounded overflow-hidden">

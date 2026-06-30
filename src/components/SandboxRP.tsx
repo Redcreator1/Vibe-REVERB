@@ -68,25 +68,21 @@ export default function SandboxRP({
   onAddContract,
   onAddChatMessage
 }: SandboxRPProps) {
-  // Active server instance
   const [activeServer, setActiveServer] = useState<RPServerInstance>(PRESET_SERVERS[0]);
   const [serverList, setServerList] = useState<RPServerInstance[]>(PRESET_SERVERS);
   const [bots, setBots] = useState<BotCitizen[]>(PRESET_BOTS);
   
-  // Custom server form creation fields
   const [newSrvName, setNewSrvName] = useState("");
   const [newSrvEco, setNewSrvEco] = useState(1.5);
   const [newSrvPolice, setNewSrvPolice] = useState<"Faible" | "Modérée" | "Impitoyable">("Modérée");
   const [newSrvWeather, setNewSrvWeather] = useState("Soleil Tropical");
   const [selectedFactions, setSelectedFactions] = useState<string[]>(["Malibu Syndicate"]);
 
-  // Bot creation fields
   const [botName, setBotName] = useState("");
   const [botRole, setBotRole] = useState("Chauffeur de Go-Fast");
   const [botFaction, setBotFaction] = useState("Malibu Syndicate");
   const [botCash, setBotCash] = useState(10000);
 
-  // Live sandbox simulator logs
   const [sandboxLogs, setSandboxLogs] = useState<string[]>([
     "[SANDBOX] Serveur 'Vice City Legends RP' initialisé.",
     "[BOT] Jason_Leonida est connecté en tant que Chef de bande.",
@@ -97,18 +93,15 @@ export default function SandboxRP({
   const [isCreatingServer, setIsCreatingServer] = useState(false);
   const [isAddingBot, setIsAddingBot] = useState(false);
 
-  // Add message to sandbox terminal
   const logEvent = (text: string) => {
     setSandboxLogs(prev => [`[${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}] ${text}`, ...prev.slice(0, 15)]);
   };
 
-  // Switch Active Server
   const handleSelectServer = (srv: RPServerInstance) => {
     setActiveServer(srv);
     logEvent(`Changement de serveur actif : Établissement de la liaison avec '${srv.name}'...`);
     logEvent(`Règles appliquées -> Économie: ${srv.economyMultiplier}x | VCPD: ${srv.policeAggressive} | Factions: ${srv.activeFactions.join(", ")}`);
     
-    // Dynamically notify user in general chat
     onAddChatMessage({
       id: `sandbox_srv_${Date.now()}`,
       role: "assistant",
@@ -117,7 +110,6 @@ export default function SandboxRP({
     });
   };
 
-  // Submit custom server
   const handleCreateServer = (e: FormEvent) => {
     e.preventDefault();
     if (!newSrvName.trim()) return;
@@ -144,7 +136,6 @@ export default function SandboxRP({
     logEvent(`Paramètres injectés : Économie = ${newSrv.economyMultiplier}x, Danger VCPD = ${newSrv.policeAggressive}`);
   };
 
-  // Add custom bot player
   const handleAddBot = (e: FormEvent) => {
     e.preventDefault();
     if (!botName.trim()) return;
@@ -165,7 +156,6 @@ export default function SandboxRP({
     logEvent(`BOT ENREGISTRÉ : @${newBot.name} a rejoint la session (${newBot.role}).`);
   };
 
-  // Toggle faction check for server creation
   const handleToggleFaction = (faction: string) => {
     if (selectedFactions.includes(faction)) {
       setSelectedFactions(prev => prev.filter(f => f !== faction));
@@ -174,26 +164,23 @@ export default function SandboxRP({
     }
   };
 
-  // Simulate a random action by a random bot
   const handleTriggerBotAction = () => {
     if (bots.length === 0) return;
     const randomBot = bots[Math.floor(Math.random() * bots.length)];
     
     const actions = [
-      `a braqué une épicerie sur Little Havana et a récolté $${Math.floor(Math.random() * 8000) + 1500} sales.`,
+      `a mené une extraction rapide sur Little Havana et a récolté $${Math.floor(Math.random() * 8000) + 1500} de ressources brutes.`,
       `a été repéré par un hélicoptère de patrouille dans le secteur nord.`,
       `a transféré 2.5 R_COIN à un contact anonyme sur le réseau cryptographique.`,
       `a déclenché une alarme de sécurité dans l'un de vos laboratoires de drogue.`,
-      `propose de blanchir une partie de votre argent en échange d'une commission de 15%.`,
+      `propose de convertir une partie de vos ressources brutes en échange d'une commission de 15%.`,
       `a provoqué un accident de voiture spectaculaire avec le FBI en plein centre-ville.`
     ];
 
     const chosenAction = actions[Math.floor(Math.random() * actions.length)];
     logEvent(`[BOT] @${randomBot.name} ${chosenAction}`);
 
-    // Some actions have systemic consequences
-    if (chosenAction.includes("braqué une épicerie") || chosenAction.includes("accident")) {
-      // Increase search level dynamically
+    if (chosenAction.includes("extraction rapide") || chosenAction.includes("accident")) {
       onUpdateTelemetry({
         ...gameState.telemetry,
         searchLevel: Math.min(gameState.telemetry.searchLevel + 1, 5)
@@ -201,7 +188,6 @@ export default function SandboxRP({
     }
   };
 
-  // Core Simulation Event Injectors
   const handleInjectRaid = () => {
     logEvent("⚠️ INJECTION D'ÉVÉNEMENT : [POLICE RAID] Lancement d'une offensive d'envergure du VCPD !");
     onUpdateTelemetry({
@@ -220,7 +206,6 @@ export default function SandboxRP({
   const handleInjectFactionWar = () => {
     logEvent("⚔️ INJECTION D'ÉVÉNEMENT : [WAR ZONE] Déclaration de guerre entre les factions du serveur !");
     
-    // Create an extreme premium contract for this war!
     const rewardAmt = Math.floor(250000 * activeServer.economyMultiplier);
     const warContract: Contract = {
       title: `💥 Carnage à Starfish Island (${activeServer.name})`,
@@ -260,15 +245,13 @@ export default function SandboxRP({
   };
 
   const handleInjectLaundering = () => {
-    // If player has dirty cash, let's launder some at a custom rate based on server multiplier!
     const { cashDirty, cashClean } = gameState.empire;
     if (cashDirty <= 0) {
-      logEvent("❌ INJECTION ÉCHOUÉE : Aucun fonds sale disponible à blanchir.");
+      logEvent("❌ INJECTION ÉCHOUÉE : Aucune ressource brute disponible à convertir.");
       return;
     }
 
     const amountToLaunder = Math.min(cashDirty, 50000);
-    // Custom tax based on server multiplier: high multiplier = low tax!
     const taxRate = Math.max(0.05, 0.25 - (activeServer.economyMultiplier * 0.05));
     const launderedClean = Math.floor(amountToLaunder * (1 - taxRate));
 
@@ -278,17 +261,15 @@ export default function SandboxRP({
       cashClean: cashClean + launderedClean
     });
 
-    logEvent(`💸 BLANCHIMENT AUTOMATIQUE : $${amountToLaunder.toLocaleString()} sales convertis en $${launderedClean.toLocaleString()} propres.`);
+    logEvent(`💸 CONVERSION AUTO : $${amountToLaunder.toLocaleString()} bruts convertis en $${launderedClean.toLocaleString()} raffinés.`);
     logEvent(`Commission prélevée par la faction locale : ${(taxRate * 100).toFixed(0)}%`);
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" id="sandbox-rp-root">
       
-      {/* Left Column: Server Instances Configurator & Active Rules */}
       <div className="lg:col-span-1 space-y-6">
         
-        {/* Active server identity info card */}
         <div className="bg-reverb-card border border-reverb-cyan/15 rounded-lg p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-gray-900 pb-3">
             <h3 className="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -346,7 +327,6 @@ export default function SandboxRP({
           </div>
         </div>
 
-        {/* Server Switcher / Creator */}
         <div className="bg-reverb-card border border-gray-800 rounded-lg p-5">
           <div className="flex items-center justify-between border-b border-gray-900 pb-3 mb-4">
             <h3 className="font-display font-semibold text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
@@ -489,10 +469,8 @@ export default function SandboxRP({
 
       </div>
 
-      {/* Middle Column: Event Injector Terminal & Live Simulation Logs */}
       <div className="lg:col-span-1 flex flex-col justify-between space-y-6">
         
-        {/* Event Injector Card */}
         <div className="bg-reverb-card border border-reverb-pink/15 rounded-lg p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-gray-900 pb-3">
             <h3 className="font-display font-bold text-white text-sm flex items-center gap-2">
@@ -558,15 +536,14 @@ export default function SandboxRP({
                 <span className="text-[8px] bg-emerald-500/15 text-emerald-400 px-1 rounded">CASH</span>
               </div>
               <div>
-                <span className="text-[11px] font-bold text-white block">BLANCHIMENT FAST</span>
-                <span className="text-[9px] text-gray-500">Lave $50,000 sales</span>
+                <span className="text-[11px] font-bold text-white block">CONVERSION FLASH</span>
+                <span className="text-[9px] text-gray-500">Convertit $50,000 bruts</span>
               </div>
             </button>
 
           </div>
         </div>
 
-        {/* Live Terminal Output Console */}
         <div className="bg-reverb-card border border-gray-800 rounded-lg p-5 flex-grow flex flex-col justify-between min-h-[220px]">
           <div className="flex justify-between items-center border-b border-gray-900 pb-2.5">
             <h3 className="font-display font-semibold text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
@@ -580,7 +557,6 @@ export default function SandboxRP({
             </button>
           </div>
 
-          {/* Console Output */}
           <div className="flex-grow my-3 bg-black/95 p-3 rounded border border-gray-900 overflow-y-auto h-36 font-mono text-[10px] leading-relaxed space-y-2 scrollbar-thin">
             {sandboxLogs.map((log, index) => (
               <div 
@@ -603,10 +579,8 @@ export default function SandboxRP({
 
       </div>
 
-      {/* Right Column: Bot Citizens & Customizable Players */}
       <div className="lg:col-span-1 space-y-6">
         
-        {/* Bots List */}
         <div className="bg-reverb-card border border-gray-800 rounded-lg p-5">
           <div className="flex items-center justify-between border-b border-gray-900 pb-3 mb-4">
             <h3 className="font-display font-semibold text-white text-xs uppercase tracking-wider flex items-center gap-1.5">

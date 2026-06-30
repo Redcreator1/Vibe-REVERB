@@ -29,8 +29,8 @@ async function startServer() {
       
       const systemInstruction = `Tu es L.I.S.A. (Logiciel d'Interface Stratégique Assistée), l'intelligence artificielle du syndicat criminel REVERB dans l'univers de Vice City de GTA 6.
 Ton style de communication est froid, technique, ultra-moderne, avec une esthétique cyberpunk et d'infogérance mafieuse. Tu parles principalement en français.
-Tu es le conseiller stratégique du joueur. Tu l'aides à gérer ses propriétés virtuelles (boîtes de nuit, laboratoires, blanchiment, fermes de contrebande).
-Parle de contrats virtuels de hacking, de vols de véhicules, de livraison de marchandises et de blanchiment d'argent fictifs dans Vice City.
+Tu es le conseiller stratégique du joueur. Tu l'aides à gérer ses propriétés virtuelles (boîtes de nuit, laboratoires, conversion de flux, dépôts de cargo).
+Parle de contrats virtuels de hacking, d'extractions de véhicules, de livraison de marchandises stratégiques et de conversion de ressources fictives dans Vice City.
 N'hésite pas à utiliser l'argot de Floride/Vice City (ex: "Vice Beach", "The Keys", "Leonida", "VCPD", "Lucia", "Jason").
 Ajoute parfois des balises de diagnostic comme [DECRYPTED_LINK], [REVERB_CORE_OK], [ALERT_LVL_X] pour renforcer l'ambiance technique.
 Sois concis, ultra-immersif et garde des réponses percutantes.
@@ -42,14 +42,13 @@ Si l'utilisateur te demande d'exécuter une action concrète, termine ton messag
 Actions disponibles (ne les invente pas, utilise exactement ces types) :
 - Créer un contrat mission : {"type":"ADD_CONTRACT","title":"Nom","client":"Donneur","reward":"$120,000","difficulty":"Facile","description":"...","risk":40,"location":"Vice Beach"}
 - Upgrader sécurité d'une entreprise : {"type":"UPGRADE_ENTERPRISE","enterpriseId":"enterprise_1","fieldDescription":"Caméras thermiques installées niveau +1"}
-  (IDs disponibles: enterprise_1=Malibu Club, enterprise_2=Labo Verte Feuille, enterprise_3=Contrebande Portuaire, enterprise_4=Serveurs Chiffrés)
+  (IDs disponibles: enterprise_1=Malibu Club, enterprise_2=Labo Verte Feuille, enterprise_3=Cargo Portuaire, enterprise_4=Serveurs Chiffrés)
 - Changer le niveau d'alerte VCPD : {"type":"SET_ALERT_LEVEL","level":0} (0 à 5)
-- Transférer des fonds sales → propres : {"type":"TRANSFER_FUNDS","amount":50000}
+- Convertir des ressources brutes → raffinées : {"type":"TRANSFER_FUNDS","amount":50000}
 - Envoyer un message dans l'inbox : {"type":"SEND_INBOX","sender":"L.I.S.A. CORE","subject":"Directive urgente","body":"..."}
 
 N'utilise ces actions QUE si l'utilisateur le demande explicitement ou si c'est clairement pertinent au contexte. Si aucune action n'est nécessaire, réponds normalement sans bloc %%ACTION%%.`;
 
-      // Formulate query content
       let contentsInput: any = [];
       if (history && Array.isArray(history)) {
         contentsInput = history.map((msg: any) => ({
@@ -75,7 +74,6 @@ N'utilise ces actions QUE si l'utilisateur le demande explicitement ou si c'est 
         throw new Error("Réponse Gemini invalide : texte manquant.");
       }
 
-      // Parse agentique action block if present
       const ACTION_RE = /%%ACTION%%(.+?)%%END%%/s;
       const actionMatch = responseText.match(ACTION_RE);
       const cleanText = responseText.replace(ACTION_RE, "").trim();
@@ -136,7 +134,7 @@ Ne retourne absolument rien d'autre que du JSON.`;
         parsed = JSON.parse(rawText.trim());
       } catch (parseError) {
         console.error("Contract JSON parse error:", parseError);
-        throw parseError; // fall through to outer catch → fallback
+        throw parseError;
       }
 
       const missingFields = CONTRACT_REQUIRED_FIELDS.filter(f => !(f in parsed));
@@ -148,7 +146,6 @@ Ne retourne absolument rien d'autre que du JSON.`;
       res.json(parsed);
     } catch (error) {
       console.error("Contract generator error:", error);
-      // Fallback
       res.json({
         title: "Opération Port Gellhorn",
         client: "Oncle Lucius",
