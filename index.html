@@ -1,13 +1,33 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>REVERB OS — Companion Criminel Immersif</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Theme color (barre de statut Android) -->
+    <meta name="theme-color" content="#ff2a74" />
+
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="REVERB" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+
+    <!-- Favicon -->
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+
+    <!-- Meta -->
+    <meta name="description" content="Console inversive de sécurité — Companion criminel immersif GTA 6" />
+    <meta property="og:title" content="REVERB OS" />
+    <meta property="og:description" content="Console inversive de sécurité — Companion criminel immersif GTA 6" />
+    <meta property="og:image" content="/icon.svg" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
