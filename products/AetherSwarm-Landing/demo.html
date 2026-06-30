@@ -1,2236 +1,313 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script>
-// GENERATED from dc-runtime/src/*.ts — do not edit. Rebuild with `cd dc-runtime && bun run build`.
-"use strict";
-(() => {
-  var __defProp = Object.defineProperty;
-  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-
-  // src/react.ts
-  function getReact() {
-    const R = window.React;
-    if (!R) throw new Error("dc-runtime: window.React is not available yet");
-    return R;
-  }
-  function getReactDOM() {
-    const RD = window.ReactDOM;
-    if (!RD) throw new Error("dc-runtime: window.ReactDOM is not available yet");
-    return RD;
-  }
-  var h = ((...args) => getReact().createElement(
-    ...args
-  ));
-
-  // src/parse.ts
-  function parseDcDocument(doc) {
-    const dc = doc.querySelector("x-dc");
-    if (!dc) return null;
-    const scriptEl = doc.querySelector("script[data-dc-script]");
-    const { props, preview } = parseDataProps(
-      scriptEl?.getAttribute("data-props") ?? null
-    );
-    return {
-      template: dc.innerHTML,
-      js: scriptEl ? scriptEl.textContent || "" : "",
-      props,
-      preview
-    };
-  }
-  function parseDcText(src) {
-    const openMatch = /<x-dc(?:\s[^>]*)?>/.exec(src);
-    if (!openMatch) return null;
-    const close = src.lastIndexOf("</x-dc>");
-    if (close === -1 || close < openMatch.index) return null;
-    const template = src.slice(openMatch.index + openMatch[0].length, close);
-    const doc = new DOMParser().parseFromString(src, "text/html");
-    const scriptEl = doc.querySelector("script[data-dc-script]");
-    const { props, preview } = parseDataProps(
-      scriptEl?.getAttribute("data-props") ?? null
-    );
-    return {
-      template,
-      js: scriptEl ? scriptEl.textContent || "" : "",
-      props,
-      preview
-    };
-  }
-  function parseDataProps(raw) {
-    if (!raw) return { props: null, preview: null };
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return { props: null, preview: null };
-    }
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return { props: null, preview: null };
-    }
-    const obj = parsed;
-    const preview = obj.$preview && typeof obj.$preview === "object" ? obj.$preview : null;
-    const rest = {};
-    for (const k of Object.keys(obj)) {
-      if (k[0] !== "$") rest[k] = obj[k];
-    }
-    return { props: Object.keys(rest).length ? rest : null, preview };
-  }
-  function dcNameFromPath(pathname) {
-    let p = pathname || "";
-    try {
-      p = decodeURIComponent(p);
-    } catch {
-    }
-    const base = p.split("/").pop() || "Root";
-    return base.replace(/\.dc\.html$/, "").replace(/\.html?$/, "") || "Root";
-  }
-
-  // src/boot.ts
-  var BASE_CSS = `
-    .sc-placeholder{background:color-mix(in srgb,currentColor 8%,transparent);
-      border:1px solid color-mix(in srgb,currentColor 50%,transparent);
-      border-radius:2px;box-sizing:border-box;overflow:hidden}
-    @keyframes sc-shine{0%{background-position:100% 50%}100%{background-position:0% 50%}}
-    html.sc-dc-streaming .sc-placeholder,
-    html.sc-dc-streaming .sc-interp.sc-missing{position:relative;
-      background:color-mix(in srgb,currentColor 5%,transparent);
-      border-color:transparent}
-    html.sc-dc-streaming .sc-placeholder::before,
-    html.sc-dc-streaming .sc-interp.sc-missing::before{content:'';
-      position:absolute;inset:0;pointer-events:none;
-      background:linear-gradient(90deg,rgba(217,119,87,0) 25%,rgba(247,225,211,.95) 37%,rgba(217,119,87,0) 63%);
-      background-size:400% 100%;animation:sc-shine 1.4s ease infinite}
-    html.sc-dc-streaming .sc-placeholder:nth-child(n+9 of .sc-placeholder)::before,
-    html.sc-dc-streaming .sc-interp.sc-missing:nth-child(n+9 of .sc-interp.sc-missing)::before{animation:none;
-      background:color-mix(in srgb,currentColor 8%,transparent)}
-    .sc-placeholder-error{padding:4px 8px;font:11px/1.4 ui-monospace,monospace;
-      color:color-mix(in srgb,currentColor 70%,transparent);word-break:break-word}
-    .sc-interp.sc-missing{display:inline-block;width:2em;height:1em;overflow:hidden;
-      vertical-align:text-bottom;background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.5);
-      border-radius:2px;box-sizing:border-box;color:transparent;
-      user-select:none}
-    .sc-interp.sc-unresolved{font-family:ui-monospace,monospace;font-size:.85em;
-      color:color-mix(in srgb,currentColor 50%,transparent);
-      background:color-mix(in srgb,currentColor 10%,transparent);border-radius:3px;
-      padding:0 3px}
-    .sc-host.sc-has-error{position:relative}
-    .sc-logic-error{position:absolute;top:8px;left:8px;z-index:2147483647;max-width:60ch;
-      padding:6px 10px;background:#b00020;color:#fff;font:12px/1.4 ui-monospace,monospace;
-      border-radius:4px;white-space:pre-wrap;pointer-events:none}
-    /* Mirrors PRINT_BASELINE_CSS in apps/web deck-stage-export.ts \u2014 keep both
-       in sync until dc-runtime regains a build step. */
-    @media print {
-      @page { margin: 0.5cm; }
-      figure, table { break-inside: avoid; }
-      #dc-root, #dc-root > .sc-host { height: auto; }
-      *, *::before, *::after {
-        print-color-adjust: exact; -webkit-print-color-adjust: exact;
-        backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
-        animation-delay: -99s !important; animation-duration: .001s !important;
-        animation-iteration-count: 1 !important; animation-fill-mode: both !important;
-        animation-play-state: running !important; transition-duration: 0s !important;
-      }
-    }
-  `;
-  var FULL_PAGE_CSS = "html,body{height:100%;margin:0}#dc-root,#dc-root>.sc-host{height:100%}";
-  function rootNameForDocument(doc, loc) {
-    let bootPath = loc.pathname || "";
-    if (!/\.dc\.html?$/i.test(safeDecode(bootPath))) {
-      try {
-        bootPath = new URL(doc.baseURI || "/").pathname;
-      } catch {
-      }
-    }
-    return dcNameFromPath(bootPath);
-  }
-  function safeDecode(s) {
-    try {
-      return decodeURIComponent(s);
-    } catch {
-      return s;
-    }
-  }
-  function boot(runtime, doc = document) {
-    const parsed = parseDcDocument(doc);
-    if (!parsed) return null;
-    const React = getReact();
-    const rootName = rootNameForDocument(doc, location);
-    runtime.markFetched(rootName);
-    runtime.setRootName(rootName);
-    runtime.adoptParsed(rootName, parsed);
-    fetch(location.href).then((res) => res.ok ? res.text() : "").then((t) => {
-      const raw = t ? parseDcText(t) : null;
-      if (raw?.template) runtime.updateHtml(rootName, raw.template);
-    }).catch(() => {
-    });
-    const dc = doc.querySelector("x-dc");
-    const hostEl = doc.createElement("div");
-    hostEl.id = "dc-root";
-    dc.replaceWith(hostEl);
-    if (!parsed.preview) {
-      const s = doc.createElement("style");
-      s.textContent = FULL_PAGE_CSS;
-      doc.head.appendChild(s);
-    }
-    const Root = runtime.getDC(rootName);
-    const entry = runtime.registry.get(rootName);
-    function StandaloneRoot() {
-      const [, setTick] = React.useState(0);
-      React.useEffect(() => {
-        const sub = () => setTick((n) => n + 1);
-        entry.subs.add(sub);
-        return () => {
-          entry.subs.delete(sub);
-        };
-      }, []);
-      const defaults = React.useMemo(() => {
-        const d = {};
-        for (const k in entry.propsMeta || {}) {
-          const v = entry.propsMeta?.[k]?.default;
-          if (v !== void 0) d[k] = v;
-        }
-        return d;
-      }, [entry.propsMeta]);
-      return h(Root, { ...defaults, ...entry.propOverrides || {} });
-    }
-    const ReactDOM = getReactDOM();
-    if (ReactDOM.createRoot)
-      ReactDOM.createRoot(hostEl).render(h(StandaloneRoot));
-    else ReactDOM.render(h(StandaloneRoot), hostEl);
-    return rootName;
-  }
-
-  // src/expr.ts
-  var IDENT_RE = /^[A-Za-z_$][A-Za-z0-9_$]*/;
-  var NUMBER_RE = /^-?\d+(\.\d+)?$/;
-  function resolve(vals, src) {
-    const expr = String(src).trim();
-    if (!expr) return void 0;
-    if (expr[0] === "(" && expr[expr.length - 1] === ")" && parensWrapWhole(expr)) {
-      return resolve(vals, expr.slice(1, -1));
-    }
-    const eq = findTopLevelEquality(expr);
-    if (eq) {
-      const lv = resolve(vals, expr.slice(0, eq.index));
-      const rv = resolve(vals, expr.slice(eq.index + eq.op.length));
-      switch (eq.op) {
-        case "===":
-          return lv === rv;
-        case "!==":
-          return lv !== rv;
-        case "==":
-          return lv == rv;
-        default:
-          return lv != rv;
-      }
-    }
-    if (expr[0] === "!") return !resolve(vals, expr.slice(1));
-    if (expr === "true") return true;
-    if (expr === "false") return false;
-    if (expr === "null") return null;
-    if (expr === "undefined") return void 0;
-    if (NUMBER_RE.test(expr)) return Number(expr);
-    if (expr.length >= 2 && (expr[0] === '"' || expr[0] === "'") && expr[expr.length - 1] === expr[0]) {
-      return expr.slice(1, -1);
-    }
-    return resolvePath(vals, expr);
-  }
-  function parensWrapWhole(expr) {
-    let depth = 0;
-    for (let i = 0; i < expr.length - 1; i++) {
-      if (expr[i] === "(") depth++;
-      else if (expr[i] === ")") {
-        depth--;
-        if (depth === 0) return false;
-      }
-    }
-    return true;
-  }
-  function findTopLevelEquality(expr) {
-    let depth = 0;
-    for (let i = 0; i < expr.length; i++) {
-      const c = expr[i];
-      if (c === "[" || c === "(") depth++;
-      else if (c === "]" || c === ")") depth--;
-      else if (depth === 0 && (c === "=" || c === "!") && expr[i + 1] === "=") {
-        if (i > 0 && (expr[i - 1] === "=" || expr[i - 1] === "!")) continue;
-        if (!expr.slice(0, i).trim()) continue;
-        const op = expr[i + 2] === "=" ? c + "==" : c + "=";
-        return { index: i, op };
-      }
-    }
-    return null;
-  }
-  function resolvePath(vals, expr) {
-    const head = expr.match(IDENT_RE);
-    if (!head) return void 0;
-    let cur = vals == null ? void 0 : vals[head[0]];
-    let i = head[0].length;
-    while (i < expr.length) {
-      if (expr[i] === ".") {
-        const m = expr.slice(i + 1).match(IDENT_RE) || expr.slice(i + 1).match(/^\d+/);
-        if (!m) return void 0;
-        cur = cur == null ? void 0 : cur[m[0]];
-        i += 1 + m[0].length;
-      } else if (expr[i] === "[") {
-        let depth = 1;
-        let j = i + 1;
-        while (j < expr.length && depth > 0) {
-          if (expr[j] === "[") depth++;
-          else if (expr[j] === "]") {
-            depth--;
-            if (depth === 0) break;
-          }
-          j++;
-        }
-        if (depth !== 0) return void 0;
-        const key = resolve(vals, expr.slice(i + 1, j));
-        cur = cur == null ? void 0 : cur[key];
-        i = j + 1;
-      } else {
-        return void 0;
-      }
-    }
-    return cur;
-  }
-
-  // src/encode.ts
-  var CAMEL_ATTR = "sc-camel-";
-  var INLINE_TEXT_TAGS = new Set(
-    "a abbr b bdi bdo br cite code del dfn em i ins kbd mark q s samp small span strike strong sub sup u var wbr".split(
-      " "
-    )
-  );
-  var RAW_WRAP = {
-    select: "sc-raw-select",
-    table: "sc-raw-table",
-    tbody: "sc-raw-tbody",
-    thead: "sc-raw-thead",
-    tfoot: "sc-raw-tfoot",
-    tr: "sc-raw-tr",
-    td: "sc-raw-td",
-    th: "sc-raw-th",
-    caption: "sc-raw-caption"
-  };
-  var RAW_UNWRAP = Object.fromEntries(
-    Object.entries(RAW_WRAP).map(([k, v]) => [v, k])
-  );
-  var EVENT_MAP = {
-    onclick: "onClick",
-    onchange: "onChange",
-    oninput: "onInput",
-    onsubmit: "onSubmit",
-    onkeydown: "onKeyDown",
-    onkeyup: "onKeyUp",
-    onkeypress: "onKeyPress",
-    onmousedown: "onMouseDown",
-    onmouseup: "onMouseUp",
-    onmouseenter: "onMouseEnter",
-    onmouseleave: "onMouseLeave",
-    onfocus: "onFocus",
-    onblur: "onBlur",
-    ondoubleclick: "onDoubleClick",
-    oncontextmenu: "onContextMenu"
-  };
-  var ATTRS = `(?:[^>"']|"[^"]*"|'[^']*')*`;
-  var IMPORT_SELF_CLOSE_RE = new RegExp(
-    "<(x-import|dc-import)(" + ATTRS + ")/>",
-    "gi"
-  );
-  var CAMEL_ATTR_RE = /(\s)([a-z]+[A-Z][A-Za-z0-9]*)(\s*=)/g;
-  function encodeCase(html) {
-    html = html.replace(
-      IMPORT_SELF_CLOSE_RE,
-      (_, t, a) => "<" + t + a + "></" + t + ">"
-    );
-    html = html.replace(/<helmet(\s|>)/gi, "<sc-helmet$1");
-    html = html.replace(/<\/helmet\s*>/gi, "</sc-helmet>");
-    html = html.replace(
-      CAMEL_ATTR_RE,
-      (_, sp, name, eq) => sp + CAMEL_ATTR + name.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()) + eq
-    );
-    for (const [real, alias] of Object.entries(RAW_WRAP)) {
-      html = html.replace(
-        new RegExp("(</?)" + real + "(?=[\\s>])", "gi"),
-        "$1" + alias
-      );
-    }
-    return html;
-  }
-  function kebabToCamel(s) {
-    return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-  }
-  function cssToObj(css) {
-    const o = {};
-    for (const decl of css.split(";")) {
-      const i = decl.indexOf(":");
-      if (i < 0) continue;
-      const prop = decl.slice(0, i).trim();
-      o[prop.startsWith("--") ? prop : kebabToCamel(prop)] = decl.slice(i + 1).trim();
-    }
-    return o;
-  }
-  function compileAttr(raw) {
-    const whole = raw.match(/^\s*\{\{([\s\S]+?)\}\}\s*$/);
-    if (whole) {
-      const path = whole[1];
-      return (vals) => resolve(vals, path);
-    }
-    if (raw.includes("{{")) {
-      const parts = raw.split(/\{\{([\s\S]+?)\}\}/g);
-      return (vals) => parts.map((s, i) => i & 1 ? resolve(vals, s) ?? "" : s).join("");
-    }
-    return () => raw;
-  }
-
-  // src/compile.ts
-  function collectProps(node, kind, host) {
-    const propGetters = [];
-    const pseudoClasses = [];
-    let hintSize = null;
-    for (const { name, value } of [...node.attributes]) {
-      if (name === "sc-name" || name === "data-dc-tpl") continue;
-      let key = name;
-      if (key.startsWith(CAMEL_ATTR))
-        key = kebabToCamel(key.slice(CAMEL_ATTR.length));
-      if (key === "hint-size") {
-        hintSize = value;
-        continue;
-      }
-      if (key.startsWith("style-")) {
-        pseudoClasses.push(host.pseudoClass(key.slice(6), value));
-        continue;
-      }
-      if (kind !== "dom") {
-        if (key.includes("-") && !(kind === "x-import" && (key.startsWith("aria-") || key.startsWith("data-"))))
-          key = kebabToCamel(key);
-      } else {
-        if (key === "class") key = "className";
-        else if (key === "for") key = "htmlFor";
-        else if (key.startsWith("on"))
-          key = EVENT_MAP[key] || "on" + key[2].toUpperCase() + key.slice(3);
-      }
-      propGetters.push([key, compileAttr(value)]);
-    }
-    return { propGetters, pseudoClasses, hintSize };
-  }
-  var HOST_STYLE_PROPS = /* @__PURE__ */ new Set([
-    "position",
-    "left",
-    "right",
-    "top",
-    "bottom",
-    "inset",
-    "width",
-    "height",
-    "z-index",
-    "transform"
-  ]);
-  function hostPositionStyle(style) {
-    const all = typeof style === "string" ? cssToObj(style) : style != null && typeof style === "object" ? style : null;
-    if (!all) return void 0;
-    const out = {};
-    for (const [k, v] of Object.entries(all)) {
-      const kebab = k.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
-      if (HOST_STYLE_PROPS.has(kebab)) out[k] = v;
-    }
-    return Object.keys(out).length ? out : void 0;
-  }
-  function compileTemplate(html, host) {
-    const tpl = document.createElement("template");
-    //! nosemgrep: direct-inner-html-assignment
-    tpl.innerHTML = encodeCase(html);
-    let tplN = 0;
-    (function stamp(node) {
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        node.setAttribute("data-dc-tpl", String(tplN++));
-      }
-      for (const c of node.childNodes) stamp(c);
-    })(tpl.content);
-    const builders = walkChildren(tpl.content, host);
-    const render = ((vals, ctx) => builders.map((b, i) => b(vals || {}, ctx, i)));
-    render.__annotated = tpl.innerHTML;
-    return render;
-  }
-  function walkChildren(node, host) {
-    return [...node.childNodes].map((c) => walk(c, host)).filter((b) => b != null);
-  }
-  function walk(node, host) {
-    if (node.nodeType === Node.TEXT_NODE) return walkText(node);
-    if (node.nodeType !== Node.ELEMENT_NODE) return null;
-    const el = node;
-    const tag = el.tagName.toLowerCase();
-    if (tag === "sc-for") return walkFor(el, host);
-    if (tag === "sc-if") return walkIf(el, host);
-    if (tag === "x-import") return walkXImport(el, host);
-    if (tag === "sc-helmet") return host.helmet(el);
-    if (tag === "dc-import") return walkComponent(el, host);
-    return walkElement(el, host);
-  }
-  var warnedHoles = /* @__PURE__ */ new Set();
-  function warnUnresolved(ctx, what) {
-    const key = (ctx?.__name || "?") + "\0" + what;
-    if (warnedHoles.has(key)) return;
-    warnedHoles.add(key);
-    console.warn("[dc-runtime] " + (ctx?.__name || "template") + ": " + what);
-  }
-  function walkText(node) {
-    const txt = node.nodeValue ?? "";
-    if (!txt.includes("{{")) {
-      if (!txt.trim() && !txt.includes(" ")) return null;
-      return () => txt;
-    }
-    const parts = txt.split(/\{\{([\s\S]+?)\}\}/g);
-    return (vals, ctx, key) => h(
-      getReact().Fragment,
-      { key },
-      ...parts.map((p, i) => {
-        if (!(i & 1)) return p;
-        const v = resolve(vals, p);
-        if (v === void 0) {
-          if (!ctx?.__streamingNow) {
-            if (document.body?.hasAttribute("data-dc-editor-on")) {
-              return h(
-                "span",
-                { key: i, className: "sc-interp sc-unresolved" },
-                "{{ " + p.trim() + " }}"
-              );
-            }
-            warnUnresolved(
-              ctx,
-              "{{ " + p.trim() + " }} never resolved \u2014 rendered as empty"
-            );
-            return null;
-          }
-          return h(
-            "span",
-            { key: i, className: "sc-interp sc-missing" },
-            p.trim()
-          );
-        }
-        if (getReact().isValidElement(v) || Array.isArray(v)) {
-          return h(getReact().Fragment, { key: i }, v);
-        }
-        if (v === null || typeof v === "boolean") return null;
-        return h("span", { key: i, className: "sc-interp" }, String(v));
-      })
-    );
-  }
-  function walkFor(el, host) {
-    const listGet = compileAttr(el.getAttribute("list") || "");
-    const asName = el.getAttribute("as") || "item";
-    const hintN = parseInt(el.getAttribute("hint-placeholder-count") || "0", 10);
-    const kids = walkChildren(el, host);
-    const listSrc = el.getAttribute("list") || "";
-    return (vals, ctx, key) => {
-      let list = listGet(vals);
-      if (!Array.isArray(list)) {
-        if (!ctx?.__streamingNow) {
-          if (list !== void 0 && list !== null) {
-            warnUnresolved(
-              ctx,
-              'sc-for list="' + listSrc + '" is not an array (' + typeof list + ")"
-            );
-          }
-          list = [];
-        } else {
-          list = hintN > 0 ? Array(hintN).fill(void 0) : [];
-        }
-      }
-      return h(
-        getReact().Fragment,
-        { key },
-        list.map((item, i) => {
-          const sub = { ...vals, [asName]: item, $index: i };
-          return h(
-            getReact().Fragment,
-            { key: i },
-            kids.map((b, j) => b(sub, ctx, j))
-          );
-        })
-      );
-    };
-  }
-  function walkIf(el, host) {
-    const valGet = compileAttr(el.getAttribute("value") || "");
-    const hintRaw = el.getAttribute("hint-placeholder-val");
-    const hintGet = hintRaw != null ? compileAttr(hintRaw) : null;
-    const kids = walkChildren(el, host);
-    return (vals, ctx, key) => {
-      let v = valGet(vals);
-      if (v === void 0 && hintGet && ctx?.__streamingNow) v = hintGet(vals);
-      return v ? h(
-        getReact().Fragment,
-        { key },
-        kids.map((b, j) => b(vals, ctx, j))
-      ) : null;
-    };
-  }
-  function walkComponent(el, host) {
-    const name = el.getAttribute("name") || el.getAttribute("component") || "";
-    el.removeAttribute("name");
-    el.removeAttribute("component");
-    const tplId = el.getAttribute("data-dc-tpl");
-    const styleRaw = el.getAttribute("style");
-    el.removeAttribute("style");
-    const styleGet = styleRaw != null ? compileAttr(styleRaw) : null;
-    const { propGetters, hintSize } = collectProps(el, "dc-import", host);
-    const kids = walkChildren(el, host);
-    return (vals, ctx, key) => {
-      const props = {
-        key,
-        __hintSize: hintSize,
-        __tplId: tplId,
-        __hostStyle: styleGet ? hostPositionStyle(styleGet(vals)) : void 0
-      };
-      for (const [k, g] of propGetters) {
-        const v = g(vals);
-        if (k === "dcProps") {
-          if (v && typeof v === "object") Object.assign(props, v);
-          continue;
-        }
-        props[k] = v;
-      }
-      if (kids.length) props.children = kids.map((b, j) => b(vals, ctx, j));
-      return h(host.component(name), props);
-    };
-  }
-  function walkXImport(el, host) {
-    const globalNameGet = compileAttr(
-      el.getAttribute("component-from-global-scope") || ""
-    );
-    const exportNameGet = compileAttr(
-      el.getAttribute("component") || el.getAttribute("name") || ""
-    );
-    const fromRaw = el.getAttribute("from") || el.getAttribute("src") || el.getAttribute("import") || "";
-    const urls = fromRaw.trim() ? fromRaw.trim().split(/\s+/) : [];
-    const url = urls.length ? urls[urls.length - 1] : "";
-    const kindOf = (u) => /\.(jsx|tsx)(\?|#|$)/i.test(u) ? "jsx" : "js";
-    const tplId = el.getAttribute("data-dc-tpl");
-    const styleRaw = el.getAttribute("style");
-    el.removeAttribute("style");
-    const styleGet = styleRaw != null ? compileAttr(styleRaw) : null;
-    const wrap = tplId != null || styleGet != null;
-    const { propGetters, hintSize } = collectProps(el, "x-import", host);
-    const hasContent = el.children.length > 0 || !!(el.textContent || "").trim();
-    const kids = hasContent ? walkChildren(el, host) : [];
-    const urlBindable = fromRaw.includes("{{");
-    if (urls.length && !urlBindable) {
-      let prev;
-      for (const u of urls) prev = host.loadExternal(kindOf(u), u, prev);
-    }
-    const evalName = (g, vals) => {
-      const v = g(vals);
-      const s = v == null ? "" : String(v);
-      return s.includes("{{") ? "" : s;
-    };
-    return (vals, ctx, key) => {
-      const globalName = evalName(globalNameGet, vals);
-      const name = globalName || evalName(exportNameGet, vals);
-      const C = !name || urlBindable ? null : globalName ? host.resolveExternalGlobal(url, globalName) : host.resolveExternal(url, name);
-      const hostStyle = styleGet ? hostPositionStyle(styleGet(vals)) : void 0;
-      const wrapper = wrap ? {
-        key,
-        className: "sc-host-x",
-        "data-dc-tpl": tplId,
-        style: hostStyle || { display: "contents" }
-      } : null;
-      if (!C) {
-        const error = urlBindable ? "x-import `from` cannot contain {{ \u2026 }} \u2014 module URLs are resolved at parse time; use a literal URL" : host.resolveExternalError(url, name);
-        const ph = host.placeholder({
-          key: wrapper ? void 0 : key,
-          name,
-          hintSize,
-          error
-        });
-        return wrapper ? h("div", wrapper, ph) : ph;
-      }
-      const props = wrapper ? {} : { key };
-      let unresolvedHole = false;
-      for (const [k, g] of propGetters) {
-        if (k === "component" || k === "componentFromGlobalScope" || k === "from") {
-          continue;
-        }
-        const v = g(vals);
-        if (v === void 0) unresolvedHole = true;
-        if (k === "dcProps") {
-          if (v && typeof v === "object") Object.assign(props, v);
-          continue;
-        }
-        props[k] = v;
-      }
-      if (unresolvedHole && ctx?.__htmlStreamingNow) {
-        const ph = host.placeholder({
-          key: wrapper ? void 0 : key,
-          name,
-          hintSize,
-          error: null
-        });
-        return wrapper ? h("div", wrapper, ph) : ph;
-      }
-      if (kids.length) props.children = kids.map((b, j) => b(vals, ctx, j));
-      return wrapper ? h("div", wrapper, h(C, props)) : h(C, props);
-    };
-  }
-  function contentKey(el) {
-    const clone = el.cloneNode(true);
-    for (const d of clone.querySelectorAll("*")) {
-      while (d.attributes.length) d.removeAttribute(d.attributes[0].name);
-    }
-    const s = clone.innerHTML;
-    let h2 = 5381;
-    for (let i = 0; i < s.length; i++) h2 = (h2 << 5) + h2 + s.charCodeAt(i) | 0;
-    return s.length + "." + (h2 >>> 0).toString(36);
-  }
-  var NEVER_CONTENT_KEYED = new Set(
-    "script style textarea option title select canvas iframe video audio".split(
-      " "
-    )
-  );
-  var NOT_INLINE_SELECTOR = ":not(" + [...INLINE_TEXT_TAGS].join(",") + ")";
-  function walkElement(el, host) {
-    const realTag = RAW_UNWRAP[el.localName] || el.localName;
-    const tplId = el.getAttribute("data-dc-tpl");
-    const inlineOnly = el.childNodes.length > 0 && !NEVER_CONTENT_KEYED.has(realTag) && el.querySelector(NOT_INLINE_SELECTOR) === null;
-    const keySuffix = inlineOnly ? "|" + contentKey(el) : "";
-    const { propGetters, pseudoClasses } = collectProps(el, "dom", host);
-    const kids = walkChildren(el, host);
-    return (vals, ctx, key) => {
-      const props = {
-        key: key + keySuffix,
-        "data-dc-tpl": tplId
-      };
-      for (const [k, g] of propGetters) {
-        let v = g(vals);
-        if (k === "style" && typeof v === "string") v = cssToObj(v);
-        if ((k === "value" || k === "checked") && v === void 0) {
-          v = k === "checked" ? false : "";
-        }
-        props[k] = v;
-      }
-      if (pseudoClasses.length) {
-        props.className = [props.className, ...pseudoClasses].filter(Boolean).join(" ");
-      }
-      return h(realTag, props, ...kids.map((b, j) => b(vals, ctx, j)));
-    };
-  }
-
-  // src/logic.ts
-  var StreamableLogic = class {
-    constructor(props) {
-      __publicField(this, "props");
-      __publicField(this, "state", {});
-      /** Back-pointer to the wrapper component, installed after construction. */
-      __publicField(this, "__host");
-      this.props = props || {};
-    }
-    setState(update, cb) {
-      this.__host && this.__host.__setLogicState(update, cb);
-    }
-    forceUpdate() {
-      this.__host && this.__host.forceUpdate();
-    }
-    componentDidMount() {
-    }
-    componentDidUpdate(_prevProps) {
-    }
-    componentWillUnmount() {
-    }
-    /** The flat object the template renders against (merged over props). */
-    renderVals() {
-      return {};
-    }
-  };
-  function evalDcLogic(src) {
-    //! nosemgrep: eval-and-function-constructor
-    const fn = new Function(
-      "DCLogic",
-      "StreamableLogic",
-      "React",
-      src + '\n;return (typeof Component!=="undefined"&&Component)||undefined;'
-    );
-    return fn(StreamableLogic, StreamableLogic, getReact());
-  }
-
-  // src/component.ts
-  function shallowEqual(a, b) {
-    if (!b) return false;
-    const ak = Object.keys(a).filter((k) => k !== "children");
-    const bk = Object.keys(b).filter((k) => k !== "children");
-    if (ak.length !== bk.length) return false;
-    for (const k of ak) if (a[k] !== b[k]) return false;
-    return true;
-  }
-  function Placeholder({
-    name,
-    hintSize,
-    streaming,
-    error
-  }) {
-    const [w, hgt] = (hintSize || "100%,60px").split(",");
-    return h(
-      "div",
-      {
-        className: "sc-placeholder" + (streaming ? " sc-streaming" : ""),
-        style: { width: w.trim(), height: hgt && hgt.trim() },
-        title: name
-      },
-      error ? h(
-        "div",
-        { className: "sc-placeholder-error" },
-        (name ? name + ": " : "") + error
-      ) : null
-    );
-  }
-  function hintToMin(hint) {
-    if (!hint) return void 0;
-    const [w, hgt] = hint.split(",");
-    return { minWidth: w.trim(), minHeight: hgt && hgt.trim() };
-  }
-  function createComponentFactory(registry, ensureFetched) {
-    const React = getReact();
-    const AncestorContext = React.createContext([]);
-    class StreamableComponent extends React.Component {
-      constructor(props) {
-        super(props);
-        __publicField(this, "__name");
-        __publicField(this, "__sub");
-        __publicField(this, "__needsDidMount", false);
-        /** Snapshot of the registry's streaming flags taken at render time —
-         *  builders read it off the RenderCtx (this) to pick placeholder vs
-         *  render-nothing for unresolved values. */
-        __publicField(this, "__streamingNow", false);
-        __publicField(this, "__htmlStreamingNow", false);
-        /** When a construct throws, remember the (class, registry.ver, props)
-         *  triple so render-time reconcile doesn't re-attempt it on every parent
-         *  re-render. A registry bump (new class, template, external module
-         *  resolving via bumpAll) changes `ver` and breaks the memo so an
-         *  env-dependent constructor can self-heal. */
-        __publicField(this, "__failedLogic", null);
-        __publicField(this, "__failedUserProps", null);
-        __publicField(this, "__failedVer", -1);
-        /** Per-instance constructor error — kept here (not on the registry entry)
-         *  so one instance's successful construct can't hide a sibling's failure,
-         *  and a construct can never wipe an eval error `updateJs` recorded on
-         *  `r.logicError`. */
-        __publicField(this, "__ctorError", null);
-        __publicField(this, "logic");
-        this.__name = props.__name;
-        this.state = { __v: 0, __err: null };
-        this.__sub = () => {
-          if (this.state.__err) this.setState({ __err: null });
-          this.forceUpdate();
-        };
-        this.__makeLogic(registry.get(this.__name).Logic, null);
-        ensureFetched(this.__name);
-      }
-      /** Error-boundary hook: a render crash anywhere in this DC's subtree
-       *  (its own template, an x-import'd component, a child DC without its
-       *  own deeper boundary) lands here instead of unmounting the page. */
-      static getDerivedStateFromError(e) {
-        return { __err: e instanceof Error && e.message ? e.message : String(e) };
-      }
-      componentDidCatch(e, info) {
-        console.error(
-          "[dc-runtime] render error in <" + this.__name + ">:",
-          e,
-          info?.componentStack || ""
-        );
-      }
-      /** Instantiate the logic class (or the no-op base) and adopt `prevState`
-       *  over its initial state — used both at mount and on hot-swap. */
-      __makeLogic(Logic, prevState) {
-        const L = Logic || StreamableLogic;
-        try {
-          this.logic = new L(this.__userProps());
-          this.__failedLogic = null;
-          this.__failedUserProps = null;
-          this.__ctorError = null;
-        } catch (e) {
-          console.error(e);
-          this.__failedLogic = Logic;
-          this.__failedUserProps = this.__userProps();
-          this.__failedVer = registry.get(this.__name).ver;
-          this.__ctorError = this.__name + ": " + (e instanceof Error && e.message ? e.message : String(e));
-          this.logic = new StreamableLogic(
-            this.__userProps()
-          );
-        }
-        this.logic.__host = this;
-        if (prevState)
-          this.logic.state = { ...this.logic.state || {}, ...prevState };
-      }
-      /** The props the author's logic + template see — internal __-prefixed
-       *  wiring stripped. */
-      __userProps() {
-        const { __name, __hintSize, __tplId, __hostStyle, ...rest } = this.props;
-        return rest;
-      }
-      __setLogicState(update, cb) {
-        const prev = this.logic.state;
-        const patch = typeof update === "function" ? update(prev) : update;
-        this.logic.state = { ...prev, ...patch };
-        this.setState((s) => ({ __v: s.__v + 1 }), cb);
-      }
-      /** Swap the logic instance when the registry's Logic class changed
-       *  (streaming completion, hot reload). State carries over; didMount
-       *  re-fires after the swap commits so refs exist. */
-      __reconcileLogic() {
-        const r = registry.get(this.__name);
-        const Next = r.Logic;
-        const Cur = this.logic.constructor;
-        if (Next === Cur || !Next && Cur === StreamableLogic || Next === this.__failedLogic && r.ver === this.__failedVer && shallowEqual(this.__userProps(), this.__failedUserProps)) {
-          return;
-        }
-        if (!this.__needsDidMount) {
-          try {
-            this.logic.componentWillUnmount();
-          } catch (e) {
-            console.error(e);
-          }
-        }
-        this.__makeLogic(Next, this.logic.state);
-        this.__needsDidMount = true;
-      }
-      componentDidMount() {
-        registry.get(this.__name).subs.add(this.__sub);
-        try {
-          this.logic.componentDidMount();
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      componentDidUpdate(prevProps) {
-        this.logic.props = this.__userProps();
-        if (this.__needsDidMount) {
-          if (this.state.__err || !registry.get(this.__name).tpl) return;
-          this.__needsDidMount = false;
-          try {
-            this.logic.componentDidMount();
-          } catch (e) {
-            console.error(e);
-          }
-        } else {
-          try {
-            this.logic.componentDidUpdate(prevProps);
-          } catch (e) {
-            console.error(e);
-          }
-        }
-      }
-      componentWillUnmount() {
-        registry.get(this.__name).subs.delete(this.__sub);
-        if (!this.__needsDidMount) {
-          try {
-            this.logic.componentWillUnmount();
-          } catch (e) {
-            console.error(e);
-          }
-        }
-      }
-      render() {
-        const r = registry.get(this.__name);
-        const cls = "sc-host" + (r.htmlStreaming ? " sc-streaming-html" : "") + (r.jsStreaming ? " sc-streaming-js" : "");
-        const hintStyle = r.htmlStreaming ? hintToMin(this.props.__hintSize) : void 0;
-        const hostStyle = this.props.__hostStyle || hintStyle ? { ...hintStyle || {}, ...this.props.__hostStyle || {} } : void 0;
-        const hostBase = {
-          className: cls,
-          style: hostStyle,
-          "data-sc-name": this.__name,
-          "data-dc-tpl": this.props.__tplId
-        };
-        const chain = Array.isArray(this.context) ? this.context : [];
-        if (chain.includes(this.__name)) {
-          const cycle = [
-            ...chain.slice(chain.indexOf(this.__name)),
-            this.__name
-          ].join(" \u2192 ");
-          return h(
-            "div",
-            { ...hostBase, className: cls + " sc-has-error" },
-            h(Placeholder, {
-              name: this.__name,
-              hintSize: this.props.__hintSize,
-              error: "circular import: " + cycle
-            })
-          );
-        }
-        if (this.state.__err) {
-          return h(
-            "div",
-            { ...hostBase, className: cls + " sc-has-error" },
-            h(
-              "div",
-              { className: "sc-logic-error", "data-omelette-chrome": "" },
-              this.__name + ": " + this.state.__err
-            ),
-            h(Placeholder, {
-              name: this.__name,
-              hintSize: this.props.__hintSize,
-              error: this.state.__err
-            })
-          );
-        }
-        this.__reconcileLogic();
-        if (!r.tpl) {
-          return h(
-            "div",
-            hostBase,
-            h(Placeholder, { name: this.__name, hintSize: this.props.__hintSize })
-          );
-        }
-        const userProps = this.__userProps();
-        this.logic.props = userProps;
-        let vals = userProps;
-        let renderErr = r.logicError || this.__ctorError;
-        try {
-          vals = { ...userProps, ...this.logic.renderVals() || {} };
-        } catch (e) {
-          console.error(e);
-          renderErr = this.__name + ".renderVals(): " + (e instanceof Error && e.message ? e.message : String(e));
-        }
-        this.__streamingNow = !!(r.htmlStreaming || r.jsStreaming);
-        this.__htmlStreamingNow = !!r.htmlStreaming;
-        return h(
-          "div",
-          { ...hostBase, className: cls + (renderErr ? " sc-has-error" : "") },
-          renderErr && h(
-            "div",
-            { className: "sc-logic-error", "data-omelette-chrome": "" },
-            renderErr
-          ),
-          h(
-            AncestorContext.Provider,
-            { value: [...chain, this.__name] },
-            r.tpl(vals, this)
-          )
-        );
-      }
-    }
-    __publicField(StreamableComponent, "contextType", AncestorContext);
-    const named = /* @__PURE__ */ new Map();
-    function getDC(name) {
-      const hit = named.get(name);
-      if (hit) return hit;
-      function Dispatcher(p) {
-        const [, setTick] = React.useState(0);
-        React.useEffect(() => {
-          const sub = () => setTick((n) => n + 1);
-          registry.get(name).subs.add(sub);
-          return () => {
-            registry.get(name).subs.delete(sub);
-          };
-        }, []);
-        ensureFetched(name);
-        return h(StreamableComponent, { ...p, __name: name });
-      }
-      Dispatcher.displayName = name;
-      named.set(name, Dispatcher);
-      return Dispatcher;
-    }
-    return {
-      getDC,
-      StreamableComponent
-    };
-  }
-
-  // src/external.ts
-  var isCustomElementName = (n) => !n.includes(".") && n.includes("-");
-  function isRenderableType(g) {
-    if (typeof g === "function") return !isElementClass(g);
-    return typeof g === "object" && g !== null && typeof g.$$typeof === "symbol";
-  }
-  function resolveDottedPath(root, name) {
-    let cur = root;
-    for (const seg of name.split(".")) {
-      if (cur == null) return void 0;
-      cur = cur[seg];
-    }
-    return cur;
-  }
-  var BABEL_URL = "https://unpkg.com/@babel/standalone@7.29.0/babel.min.js";
-  var BABEL_SRI = "sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y";
-  var GLOBAL_POLL_INTERVAL_MS = 50;
-  var GLOBAL_POLL_TIMEOUT_MS = 3e4;
-  function createExternalModules(onResolved) {
-    const cache = /* @__PURE__ */ new Map();
-    let babelLoading = null;
-    const reportedMissing = /* @__PURE__ */ new Map();
-    const polling = /* @__PURE__ */ new Set();
-    function ensureBabel() {
-      if (window.Babel) return Promise.resolve();
-      if (babelLoading) return babelLoading;
-      babelLoading = new Promise((res, rej) => {
-        const s = document.createElement("script");
-        s.src = BABEL_URL;
-        s.integrity = BABEL_SRI;
-        s.crossOrigin = "anonymous";
-        s.onload = () => res();
-        s.onerror = rej;
-        document.head.appendChild(s);
-      });
-      return babelLoading;
-    }
-    const pending = /* @__PURE__ */ new Map();
-    function load(kind, url, after) {
-      const existing = pending.get(url);
-      if (existing) return existing;
-      cache.set(url, null);
-      console.info("[dc-runtime] x-import: loading", url, "(" + kind + ")");
-      const ready = Promise.all([
-        kind === "jsx" ? ensureBabel() : Promise.resolve(),
-        after ?? Promise.resolve()
-      ]);
-      const p = ready.then(() => fetch(url)).then((r) => {
-        if (!r.ok) throw new Error("HTTP " + r.status);
-        return r.text();
-      }).then((src) => {
-        const code = kind === "jsx" ? window.Babel.transform(src, {
-          filename: url,
-          presets: ["react", "typescript"]
-        }).code : src;
-        const module = { exports: {} };
-        const before = new Set(Object.keys(window));
-        //! nosemgrep: eval-and-function-constructor
-        new Function("React", "module", "exports", "require", code)(
-          getReact(),
-          module,
-          module.exports,
-          () => ({})
-        );
-        const globals = {};
-        for (const k of Object.keys(window)) {
-          if (!before.has(k) && typeof window[k] === "function") {
-            globals[k] = window[k];
-          }
-        }
-        cache.set(url, { mod: module.exports, globals });
-        console.info(
-          "[dc-runtime] x-import: loaded",
-          url,
-          "\u2014 exports:",
-          Object.keys(module.exports),
-          "window globals:",
-          Object.keys(globals)
-        );
-        onResolved();
-      }).catch((e) => {
-        cache.set(url, {
-          mod: {},
-          globals: {},
-          error: "failed to load: " + (e instanceof Error && e.message ? e.message : String(e))
-        });
-        console.error(
-          "[dc-runtime] x-import: FAILED to load",
-          url,
-          "(" + kind + ")",
-          e
-        );
-        onResolved();
-      });
-      pending.set(url, p);
-      return p;
-    }
-    function resolve2(url, name) {
-      const entry = cache.get(url);
-      if (!entry) return null;
-      const { mod, globals } = entry;
-      const C = mod && mod[name] || globals && globals[name] || typeof window !== "undefined" && window[name] || mod && mod.default;
-      if (typeof C === "function") return C;
-      const key = url + "\0" + name;
-      if (!reportedMissing.has(key)) {
-        reportedMissing.set(
-          key,
-          entry.error || 'no export named "' + name + '" (has: ' + Object.keys(mod).join(", ") + ")"
-        );
-        console.error(
-          "[dc-runtime] x-import: module",
-          url,
-          "loaded but has no component named",
-          JSON.stringify(name),
-          "\u2014 available exports:",
-          Object.keys(mod),
-          "window globals:",
-          Object.keys(globals),
-          ". The module must `module.exports = {" + name + "}` or set `window." + name + "`."
-        );
-      }
-      return null;
-    }
-    function waitForGlobal(name) {
-      if (polling.has(name)) return;
-      polling.add(name);
-      const started = Date.now();
-      const isCE = isCustomElementName(name);
-      const tick = () => {
-        const found = isCE ? customElements.get(name) : isRenderableType(resolveDottedPath(window, name));
-        if (found) {
-          polling.delete(name);
-          onResolved();
-          return;
-        }
-        if (Date.now() - started >= GLOBAL_POLL_TIMEOUT_MS) {
-          console.warn(
-            "[dc-runtime] x-import: global",
-            JSON.stringify(name),
-            "never appeared on window after " + GLOBAL_POLL_TIMEOUT_MS + "ms"
-          );
-          return;
-        }
-        setTimeout(tick, GLOBAL_POLL_INTERVAL_MS);
-      };
-      setTimeout(tick, GLOBAL_POLL_INTERVAL_MS);
-    }
-    function resolveGlobal(url, name) {
-      const isCE = isCustomElementName(name);
-      if (!url) {
-        if (isCE) {
-          if (customElements.get(name)) return name;
-          waitForGlobal(name);
-          return null;
-        }
-        const g2 = resolveDottedPath(window, name);
-        if (isRenderableType(g2)) return g2;
-        waitForGlobal(name);
-        return null;
-      }
-      const entry = cache.get(url);
-      if (!entry) return null;
-      if (isCE && customElements.get(name)) return name;
-      const g = entry.globals[name] ?? resolveDottedPath(window, name);
-      if (isRenderableType(g)) return g;
-      if (name.includes(".")) return null;
-      const key = url + "\0global\0" + name;
-      if (!reportedMissing.has(key)) {
-        reportedMissing.set(key, null);
-        if (isCE && !customElements.get(name)) {
-          console.warn(
-            "[dc-runtime] x-import:",
-            url,
-            "loaded but no custom element",
-            JSON.stringify(name),
-            "is registered and window." + name + " is not a function \u2014 rendering <" + name + "> as an unknown element."
-          );
-        }
-      }
-      return name;
-    }
-    function getError(url, name) {
-      const entry = cache.get(url);
-      if (entry?.error) return entry.error;
-      return reportedMissing.get(url + "\0" + name) || null;
-    }
-    return { load, resolve: resolve2, resolveGlobal, getError };
-  }
-  function isElementClass(g) {
-    try {
-      return typeof g === "function" && typeof HTMLElement !== "undefined" && g.prototype instanceof HTMLElement;
-    } catch {
-      return false;
-    }
-  }
-
-  // src/atomics.ts
-  var ATOMIC_CSS = (
-    // layout
-    ".fx{display:flex}.col{display:flex;flex-direction:column}.grid{display:grid}.ac{align-items:center}.jc{justify-content:center}.jb{justify-content:space-between}.f1{flex:1}.noshrink{flex-shrink:0}.wrap{flex-wrap:wrap}.fw5{font-weight:500}.fw6{font-weight:600}.fw7{font-weight:700}.fw8{font-weight:800}.fs11{font-size:11px}.fs12{font-size:12px}.fs13{font-size:13px}.fs14{font-size:14px}.fs15{font-size:15px}.fs16{font-size:16px}.fs20{font-size:20px}.fs22{font-size:22px}.upper{text-transform:uppercase}.tc{text-align:center}.nowrap{white-space:nowrap}.gap8{gap:8px}.gap10{gap:10px}.gap12{gap:12px}.gap16{gap:16px}.gap24{gap:24px}.m0{margin:0}.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}.mb16{margin-bottom:16px}.posrel{position:relative}.posabs{position:absolute}.round{border-radius:50%}.ohide{overflow:hidden}.bbox{box-sizing:border-box}.pointer{cursor:pointer}.w100{width:100%}.b0{border:none}"
-  );
-
-  // src/helmet.ts
-  var DESIGN_DOC_MODE_RE = /<meta\b[^>]*\bname\s*=\s*["']design_doc_mode["'][^>]*\b(?:content|value)\s*=\s*["'](\w+)["']/i;
-  var CANVAS_BG_LIGHT = "#f0eee6";
-  var CANVAS_BG_DARK = "#2e2c26";
-  function createHelmetManager(doc, isStreaming) {
-    const mounted = /* @__PURE__ */ new Set();
-    const live = /* @__PURE__ */ new Map();
-    let designDocMode = null;
-    let canvasStyleEl = null;
-    let appTheme = "light";
-    try {
-      const ds = doc.documentElement.dataset.theme;
-      appTheme = ds === "dark" || ds === "light" ? ds : new URLSearchParams(doc.defaultView?.location.search ?? "").get(
-        "theme"
-      ) === "dark" ? "dark" : "light";
-    } catch {
-    }
-    function applyCanvasBg() {
-      if (!canvasStyleEl) return;
-      const bg = appTheme === "dark" ? CANVAS_BG_DARK : CANVAS_BG_LIGHT;
-      canvasStyleEl.textContent = `html,body{background:${bg}}#dc-root>.sc-host{position:relative}`;
-    }
-    function postDesignMode(mode) {
-      if (window.parent === window) return;
-      try {
-        window.parent.postMessage({ type: "__dc_design_mode", mode }, "*");
-      } catch {
-      }
-    }
-    function setDesignDocMode(mode) {
-      if (mode === designDocMode) return;
-      designDocMode = mode;
-      postDesignMode(mode);
-      if (mode === "canvas") {
-        doc.documentElement.setAttribute("data-dc-canvas", "");
-        canvasStyleEl = doc.createElement("style");
-        canvasStyleEl.setAttribute("data-dc-canvas", "");
-        applyCanvasBg();
-        doc.head.appendChild(canvasStyleEl);
-      } else {
-        doc.documentElement.removeAttribute("data-dc-canvas");
-        canvasStyleEl?.remove();
-        canvasStyleEl = null;
-      }
-    }
-    window.addEventListener("message", (e) => {
-      const type = e.data && e.data.type;
-      if (type === "__dc_theme") {
-        const t = e.data.theme;
-        if (t === "light" || t === "dark") {
-          appTheme = t;
-          doc.documentElement.dataset.theme = t;
-          applyCanvasBg();
-        }
-        return;
-      }
-      if (!designDocMode || type !== "__dc_probe") return;
-      postDesignMode(designDocMode);
-    });
-    function compile(node) {
-      const raw = [...node.children];
-      const helmetClosed = node.nextSibling != null || node.parentNode?.nextSibling != null;
-      if (node.hasAttribute("data-dc-atomics") && !mounted.has("__dc-atomics")) {
-        mounted.add("__dc-atomics");
-        const el = doc.createElement("style");
-        el.id = "__dc-atomics";
-        el.textContent = ATOMIC_CSS;
-        doc.head.appendChild(el);
-      }
-      return (_vals, ctx) => {
-        const name = ctx && ctx.__name || "";
-        const streaming = !!(name && isStreaming(name));
-        for (let i = 0; i < raw.length; i++) {
-          const child = raw[i];
-          const tag = child.tagName;
-          const mayBePartial = streaming && !helmetClosed && i === raw.length - 1;
-          if (tag === "SCRIPT") {
-            if (mayBePartial) continue;
-            const key = "SCRIPT|" + (child.getAttribute("src") || child.textContent || "");
-            if (mounted.has(key)) continue;
-            mounted.add(key);
-            const el = doc.createElement("script");
-            for (const { name: an, value } of [...child.attributes])
-              el.setAttribute(an, value);
-            if (child.textContent) el.textContent = child.textContent;
-            doc.head.appendChild(el);
-          } else if (tag === "LINK" || tag === "META") {
-            if (mayBePartial) continue;
-            const key = tag + "|" + (child.getAttribute("href") || child.getAttribute("src") || child.outerHTML);
-            if (mounted.has(key)) continue;
-            mounted.add(key);
-            doc.head.appendChild(child.cloneNode(true));
-          } else {
-            const key = name + "|" + i;
-            let el = live.get(key);
-            if (!el || el.tagName !== tag) {
-              if (el) el.remove();
-              el = doc.createElement(tag.toLowerCase());
-              live.set(key, el);
-              doc.head.appendChild(el);
-            }
-            for (const { name: an, value } of [...child.attributes]) {
-              if (el.getAttribute(an) !== value) el.setAttribute(an, value);
-            }
-            if (el.textContent !== child.textContent)
-              el.textContent = child.textContent;
-          }
-        }
-        return null;
-      };
-    }
-    return { compile, setDesignDocMode };
-  }
-
-  // src/pseudo.ts
-  function createPseudoSheet(doc) {
-    let el = null;
-    const cache = /* @__PURE__ */ new Map();
-    let n = 0;
-    return (pseudo, css) => {
-      const k = pseudo + "|" + css;
-      const hit = cache.get(k);
-      if (hit) return hit;
-      if (!el) {
-        el = doc.createElement("style");
-        doc.head.appendChild(el);
-      }
-      const cls = "scp" + (n++).toString(36);
-      const sel = pseudo === "before" || pseudo === "after" ? "." + cls + "::" + pseudo : "." + cls + ":" + pseudo;
-      el.sheet.insertRule(sel + "{" + css + "}", el.sheet.cssRules.length);
-      cache.set(k, cls);
-      return cls;
-    };
-  }
-
-  // src/registry.ts
-  function createRegistry() {
-    const entries = /* @__PURE__ */ Object.create(null);
-    function get(name) {
-      return entries[name] || (entries[name] = {
-        html: "",
-        tpl: null,
-        Logic: null,
-        jsStreaming: false,
-        htmlStreaming: false,
-        ver: 0,
-        subs: /* @__PURE__ */ new Set(),
-        fetched: false
-      });
-    }
-    function bump(name) {
-      const r = get(name);
-      r.ver++;
-      for (const fn of r.subs) fn();
-    }
-    return {
-      entries,
-      get,
-      bump,
-      bumpAll() {
-        for (const n in entries) bump(n);
-      }
-    };
-  }
-
-  // src/runtime.ts
-  var COMPONENT_DIR = ".";
-  function createRuntime(doc = document) {
-    const registry = createRegistry();
-    const pseudoClass = createPseudoSheet(doc);
-    const helmet = createHelmetManager(
-      doc,
-      (name) => registry.get(name).htmlStreaming
-    );
-    const external = createExternalModules(() => registry.bumpAll());
-    const factory = createComponentFactory(registry, ensureFetched);
-    const host = {
-      component: (name) => factory.getDC(name),
-      placeholder: (props) => h(Placeholder, props),
-      helmet: (node) => helmet.compile(node),
-      loadExternal: (kind, url, after) => external.load(kind, url, after),
-      resolveExternal: (url, name) => external.resolve(url, name),
-      resolveExternalGlobal: (url, name) => external.resolveGlobal(url, name),
-      resolveExternalError: (url, name) => external.getError(url, name),
-      pseudoClass
-    };
-    function ensureFetched(name) {
-      const r = registry.get(name);
-      if (r.fetched) return;
-      r.fetched = true;
-      const url = COMPONENT_DIR + "/" + encodeURIComponent(name) + ".dc.html";
-      fetch(url).then((res) => {
-        if (!res.ok) {
-          console.error(
-            "[dc-runtime] sibling fetch for <" + name + "/> failed:",
-            url,
-            "returned",
-            res.status,
-            "\u2014 the reference renders as an empty placeholder."
-          );
-          return "";
-        }
-        return res.text();
-      }).then((t) => {
-        if (!t) return;
-        const parsed = parseDcText(t);
-        if (!parsed) {
-          console.error(
-            "[dc-runtime] sibling fetch for <" + name + "/>:",
-            url,
-            "has no <x-dc> block \u2014 not a Design Component."
-          );
-          return;
-        }
-        if (parsed.props) r.propsMeta = parsed.props;
-        if (parsed.preview) r.preview = parsed.preview;
-        if (parsed.template && !r.html) updateHtml(name, parsed.template);
-        if (parsed.js && !r.Logic) updateJs(name, parsed.js);
-      }).catch(
-        (e) => console.error(
-          "[dc-runtime] sibling fetch for <" + name + "/> threw:",
-          url,
-          e
-        )
-      );
-    }
-    let rootName = null;
-    function updateHtml(name, html) {
-      const r = registry.get(name);
-      r.html = html;
-      if (name === rootName) {
-        const mode = DESIGN_DOC_MODE_RE.exec(html)?.[1] ?? null;
-        if (mode || !r.htmlStreaming) helmet.setDesignDocMode(mode);
-      }
-      try {
-        r.tpl = compileTemplate(html, host);
-      } catch (e) {
-        console.error("[dc-runtime] template compile FAILED for", name, e);
-      }
-      registry.bump(name);
-    }
-    function updateJs(name, src) {
-      const r = registry.get(name);
-      const seq = r.jsSeq = (r.jsSeq || 0) + 1;
-      try {
-        const Cls = evalDcLogic(src);
-        if (r.jsSeq !== seq) return;
-        if (typeof Cls !== "function") {
-          r.logicError = name + ".dc.html: <script data-dc-script> must define `class Component extends DCLogic`";
-        } else {
-          r.logicError = null;
-          r.Logic = Cls;
-        }
-      } catch (e) {
-        if (r.jsSeq !== seq) return;
-        console.error(
-          "[dc-runtime] logic class eval FAILED for",
-          name,
-          "\u2014 the template renders with props only.",
-          e
-        );
-        r.logicError = name + ": " + (e instanceof Error && e.message ? e.message : String(e));
-      }
-      registry.bump(name);
-    }
-    function setStreaming(name, kind, on) {
-      const r = registry.get(name);
-      if (kind === "html") r.htmlStreaming = !!on;
-      else r.jsStreaming = !!on;
-      let any = false;
-      for (const n in registry.entries) {
-        const e = registry.entries[n];
-        if (e && (e.htmlStreaming || e.jsStreaming)) {
-          any = true;
-          break;
-        }
-      }
-      doc.documentElement.classList.toggle("sc-dc-streaming", any);
-      registry.bump(name);
-    }
-    function dcUpdate(name, kind, content, streaming) {
-      if (streaming) registry.get(name).fetched = true;
-      if (kind === "html") {
-        setStreaming(name, "html", !!streaming);
-        updateHtml(name, content);
-      } else if (kind === "js") {
-        setStreaming(name, "js", !!streaming);
-        if (!streaming) updateJs(name, content);
-      } else if (kind === "props") {
-        const { props, preview } = parseDataProps(content);
-        const r = registry.get(name);
-        r.propsMeta = props ?? void 0;
-        r.preview = preview;
-        registry.bump(name);
-      }
-    }
-    function setProps(name, overrides) {
-      registry.get(name).propOverrides = overrides && typeof overrides === "object" ? { ...overrides } : null;
-      registry.bump(name);
-    }
-    function adoptParsed(name, parsed) {
-      if (!parsed) return;
-      const r = registry.get(name);
-      if (parsed.props) r.propsMeta = parsed.props;
-      if (parsed.preview) r.preview = parsed.preview;
-      if (parsed.template) updateHtml(name, parsed.template);
-      if (parsed.js) updateJs(name, parsed.js);
-    }
-    return {
-      registry,
-      getDC: factory.getDC,
-      updateHtml,
-      updateJs,
-      dcUpdate,
-      setProps,
-      adoptParsed,
-      setRootName: (name) => {
-        rootName = name;
-      },
-      markFetched: (name) => {
-        registry.get(name).fetched = true;
-      },
-      annotatedTemplate: (name) => {
-        const r = registry.get(name);
-        return r.tpl && r.tpl.__annotated || null;
-      },
-      templateSource: (name) => registry.get(name).html || null,
-      StreamableLogic
-    };
-  }
-
-  // src/index.ts
-  var REACT_URL = "https://unpkg.com/react@18.3.1/umd/react.production.min.js";
-  var REACT_SRI = "sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z";
-  var REACT_DOM_URL = "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js";
-  var REACT_DOM_SRI = "sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1";
-  function hideRawTemplate() {
-    const s = document.createElement("style");
-    s.textContent = "x-dc{display:none!important}";
-    document.head.appendChild(s);
-  }
-  function loadScript(src, integrity) {
-    return new Promise((resolve2, reject) => {
-      //! nosemgrep: create-script-element
-      const s = document.createElement("script");
-      s.src = src;
-      s.integrity = integrity;
-      s.crossOrigin = "anonymous";
-      s.async = false;
-      s.onload = () => resolve2();
-      s.onerror = () => reject(new Error(`failed to load ${src}`));
-      document.head.appendChild(s);
-    });
-  }
-  function loadReactUmd() {
-    const w = window;
-    if (w.React && w.ReactDOM) return Promise.resolve();
-    return Promise.all([
-      loadScript(REACT_URL, REACT_SRI),
-      loadScript(REACT_DOM_URL, REACT_DOM_SRI)
-    ]).then(() => void 0);
-  }
-  function init() {
-    const runtime = createRuntime(document);
-    let rootName = "Root";
-    const baseCss = document.createElement("style");
-    baseCss.textContent = BASE_CSS;
-    document.head.prepend(baseCss);
-    const notifyHost = () => {
-      if (window.parent === window) return;
-      const r = runtime.registry.entries[rootName];
-      try {
-        window.parent.postMessage(
-          {
-            type: "__dc_booted",
-            rootName,
-            propsMeta: r && r.propsMeta || null,
-            preview: r && r.preview || null
-          },
-          "*"
-        );
-      } catch {
-      }
-    };
-    const api = {
-      __dcUpdate: (name, kind, content, streaming) => {
-        runtime.dcUpdate(name, kind, content, streaming);
-        if (name === rootName && !streaming && kind === "props") notifyHost();
-      },
-      __dcSetProps: (name, overrides) => runtime.setProps(name, overrides),
-      /** Name of the component currently mounted as the page root — DC tools
-       *  push their template-stream here when targeting "the open page". */
-      __dcRootName: () => rootName,
-      /** Editor bridge — the encoded, `data-dc-tpl`-annotated template source.
-       *  The host editor parses this into its own template DOM so it can map a
-       *  rendered node (carrying the same `data-dc-tpl`) back to the source
-       *  node that emitted it. Returns the encoded form (`<sc-comp>`,
-       *  `sc-camel-*` attrs); the editor decodes on serialize. */
-      __dcAnnotatedTemplate: (name) => runtime.annotatedTemplate(name),
-      /** Editor bridge — the *original* (decoded) template source. */
-      __dcTemplateSource: (name) => runtime.templateSource(name),
-      __dcBoot: () => {
-        rootName = boot(runtime, document) ?? rootName;
-        notifyHost();
-      },
-      __dcRegistry: runtime.registry.entries,
-      getDC: (name) => runtime.getDC(name),
-      // `DCLogic` is the documented base class name; `StreamableLogic` is the
-      // implementation alias kept for any project that already references it.
-      DCLogic: runtime.StreamableLogic,
-      StreamableLogic: runtime.StreamableLogic
-    };
-    Object.assign(window, api);
-    window.__dcContentKeyed = true;
-    if (document.readyState !== "loading") api.__dcBoot();
-    else document.addEventListener("DOMContentLoaded", () => api.__dcBoot());
-  }
-  hideRawTemplate();
-  loadReactUmd().then(init).catch((err) => {
-    console.error("[dc] failed to load React or boot:", err);
-    throw err;
-  });
-})();
-
-</script>
-</head>
-<body>
-<x-dc>
-<helmet>
+<title>AetherSwarm Console — Démo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  *{box-sizing:border-box}
-  html,body{margin:0;background:#070a12}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-  @keyframes cardIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
-  @keyframes blink{0%,100%{opacity:.18}50%{opacity:1}}
-  @keyframes ring{0%,100%{box-shadow:0 0 0 4px rgba(129,140,248,.18)}50%{box-shadow:0 0 0 7px rgba(129,140,248,.05)}}
-  ::-webkit-scrollbar{width:8px;height:8px}
-  ::-webkit-scrollbar-thumb{background:#ffffff1f;border-radius:8px}
-  ::-webkit-scrollbar-track{background:transparent}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#070a12;color:#e8ecff;font-family:'IBM Plex Sans',system-ui,sans-serif}
+@keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(129,140,248,.15)}50%{box-shadow:0 0 0 7px rgba(129,140,248,.04)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes typing{from{width:0}to{width:100%}}
+
+/* LAYOUT */
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* NAV */
+.nav{display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid rgba(148,163,184,.12);background:rgba(11,15,26,.85);backdrop-filter:blur(12px);position:sticky;top:0;z-index:30;}
+.traffic{display:flex;gap:7px}
+.dot{width:11px;height:11px;border-radius:50%}
+.dot-r{background:#ff5f57}.dot-y{background:#febc2e}.dot-g{background:#28c840}
+.addr{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#7c89a8;flex:1;text-align:center}
+.badge-live{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#86efac;border:1px solid rgba(34,197,94,.3);background:rgba(34,197,94,.07);border-radius:999px;padding:4px 12px}
+.pulse-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 9px #4ade80;animation:blink 1.6s infinite}
+.lang-toggle{display:flex;gap:4px}
+.lang-btn{background:none;border:1px solid rgba(148,163,184,.2);color:#94a3b8;border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;transition:.2s}
+.lang-btn.active{border-color:#6366f1;color:#c7d2fe;background:rgba(99,102,241,.15)}
+.back-link{font-size:12px;color:#6366f1;text-decoration:none;padding:4px 10px;border:1px solid rgba(99,102,241,.3);border-radius:6px}
+.back-link:hover{background:rgba(99,102,241,.1)}
+
+/* MAIN GRID */
+.main{flex:1;overflow:hidden;display:grid;grid-template-columns:270px 1fr;gap:0}
+
+/* SIDEBAR */
+.sidebar{border-right:1px solid rgba(148,163,184,.1);overflow-y:auto;padding:16px 12px;display:flex;flex-direction:column;gap:10px}
+.sidebar-title{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:#64748b;padding:0 4px 6px}
+.mission-card{border:1px solid rgba(148,163,184,.12);border-radius:10px;padding:12px 14px;cursor:pointer;transition:.2s;background:rgba(255,255,255,.02)}
+.mission-card:hover{border-color:rgba(99,102,241,.4);background:rgba(99,102,241,.07)}
+.mission-card.active{border-color:#6366f1;background:rgba(99,102,241,.12)}
+.mission-label{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.mission-title{font-size:13px;font-weight:600;color:#e2e8f0;line-height:1.4}
+
+/* CONSOLE AREA */
+.console{display:flex;flex-direction:column;overflow:hidden}
+.console-header{padding:16px 20px 12px;border-bottom:1px solid rgba(148,163,184,.08)}
+.console-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:#93c5fd;margin-bottom:4px}
+.console-title{font-size:1.5rem;font-weight:700;letter-spacing:-.02em}
+.console-sub{font-size:13px;color:rgba(226,232,240,.6);margin-top:5px}
+
+/* PIPELINE */
+.pipeline-wrap{padding:16px 20px;border-bottom:1px solid rgba(148,163,184,.08)}
+.pipeline{display:flex;align-items:center;gap:0;overflow-x:auto;padding-bottom:4px}
+.agent-step{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:80px}
+.agent-icon{width:44px;height:44px;border-radius:12px;border:1.5px solid rgba(148,163,184,.2);background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;font-size:18px;transition:.3s;position:relative}
+.agent-icon.active{border-color:#6366f1;background:rgba(99,102,241,.15);box-shadow:0 0 0 4px rgba(99,102,241,.12);animation:pulse 2s infinite}
+.agent-icon.done{border-color:#22c55e;background:rgba(34,197,94,.1)}
+.agent-icon.done::after{content:'✓';position:absolute;bottom:-4px;right:-4px;width:16px;height:16px;background:#22c55e;border-radius:50%;font-size:9px;display:flex;align-items:center;justify-content:center;color:#000;font-weight:700}
+.agent-name{font-size:10px;color:#94a3b8;text-align:center;white-space:nowrap}
+.agent-arrow{width:28px;height:2px;background:linear-gradient(90deg,rgba(99,102,241,.4),rgba(99,102,241,.15));flex-shrink:0;margin-top:-20px}
+
+/* BRIEF INPUT */
+.brief-area{padding:14px 20px;border-bottom:1px solid rgba(148,163,184,.08);display:flex;flex-direction:column;gap:10px}
+.brief-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:#c7d2fe}
+.brief-input{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(148,163,184,.15);border-radius:10px;padding:12px 14px;color:#eef1ff;font-size:13.5px;font-family:'IBM Plex Sans',sans-serif;resize:none;outline:none;transition:.2s;line-height:1.5}
+.brief-input:focus{border-color:#6366f1;background:rgba(99,102,241,.05)}
+.run-btn{align-self:flex-end;background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;color:#fff;padding:10px 22px;border-radius:9px;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.2s}
+.run-btn:hover{opacity:.9;transform:translateY(-1px)}
+.run-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;display:none}
+.run-btn.running .spinner{display:block}
+.run-btn.running .btn-label{display:none}
+.run-btn.running .running-label{display:inline}
+.running-label{display:none}
+
+/* OUTPUT */
+.output-area{flex:1;overflow-y:auto;padding:14px 20px}
+.output-block{animation:fadeUp .3s ease}
+.agent-output{margin-bottom:14px;border:1px solid rgba(148,163,184,.1);border-radius:10px;overflow:hidden}
+.agent-output-header{padding:9px 14px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(148,163,184,.08);display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#c7d2fe}
+.agent-output-body{padding:12px 14px;font-size:13px;line-height:1.65;color:#cbd5e1;font-family:'IBM Plex Mono',monospace;white-space:pre-wrap}
+.status-idle{color:#64748b;font-size:13px;text-align:center;padding:40px 20px}
+.status-idle span{display:block;font-size:28px;margin-bottom:10px}
 </style>
-</helmet>
-<div data-screen-label="AetherSwarm Console" style="min-height:100vh;font-family:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#e8ecff;position:relative;overflow-x:hidden;background:radial-gradient(1200px 600px at 18% -12%,rgba(99,102,241,.28),transparent 55%),radial-gradient(1000px 520px at 92% 2%,rgba(14,165,233,.20),transparent 50%),#070a12;">
+</head>
+<body>
+<div class="app">
 
-  <div style="display:flex;align-items:center;gap:12px;padding:9px 18px;border-bottom:1px solid rgba(148,163,184,.12);background:rgba(11,15,26,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);position:sticky;top:0;z-index:30;">
-    <div style="display:flex;gap:7px;align-items:center;">
-      <span style="width:11px;height:11px;border-radius:50%;background:#ff5f57;"></span>
-      <span style="width:11px;height:11px;border-radius:50%;background:#febc2e;"></span>
-      <span style="width:11px;height:11px;border-radius:50%;background:#28c840;"></span>
+<!-- NAV -->
+<nav class="nav">
+  <div class="traffic"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+  <div class="addr">127.0.0.1:8787 · aether-swarm</div>
+  <div class="badge-live"><div class="pulse-dot"></div><span id="live-label">Connecté</span></div>
+  <div class="lang-toggle">
+    <button class="lang-btn active" onclick="setLang('fr')">FR</button>
+    <button class="lang-btn" onclick="setLang('en')">EN</button>
+  </div>
+  <a class="back-link" href="index.html">← Retour</a>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-title" id="sb-title">Missions exemples</div>
+    <div id="missions"></div>
+  </aside>
+
+  <!-- CONSOLE -->
+  <div class="console">
+    <div class="console-header">
+      <div class="console-eyebrow" id="eyebrow">Console Interactive</div>
+      <div class="console-title" id="ctitle">AetherSwarm v1</div>
+      <div class="console-sub" id="csub">Pipeline 6 agents — 100% local, zéro SaaS</div>
     </div>
-    <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#7c89a8;">127.0.0.1:8787 · aether-swarm</span>
-    <div style="flex:1"></div>
-    <span style="display:inline-flex;align-items:center;gap:7px;font-size:11px;color:#86efac;border:1px solid rgba(34,197,94,.3);background:rgba(34,197,94,.07);border-radius:999px;padding:4px 11px;">
-      <span style="width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 9px #4ade80;animation:blink 1.6s infinite;"></span>{{ localBadge }}
-    </span>
-    <div style="display:flex;border:1px solid rgba(148,163,184,.25);border-radius:9px;overflow:hidden;">
-      <button onClick="{{ setFr }}" style="{{ frStyle }}">FR</button>
-      <button onClick="{{ setEn }}" style="{{ enStyle }}">EN</button>
+
+    <!-- PIPELINE -->
+    <div class="pipeline-wrap">
+      <div class="pipeline" id="pipeline"></div>
+    </div>
+
+    <!-- BRIEF -->
+    <div class="brief-area">
+      <div class="brief-label" id="brief-label">Mission</div>
+      <textarea class="brief-input" id="brief" rows="3" placeholder="Décris ta mission..."></textarea>
+      <button class="run-btn" id="run-btn" onclick="runSwarm()">
+        <span class="spinner"></span>
+        <span class="btn-label">▶ Lancer le Swarm</span>
+        <span class="running-label">Agents en cours…</span>
+      </button>
+    </div>
+
+    <!-- OUTPUT -->
+    <div class="output-area" id="output">
+      <div class="status-idle" id="idle-msg">
+        <span>🤖</span>
+        <span id="idle-text">Sélectionne une mission ou écris ton brief, puis lance le Swarm.</span>
+      </div>
     </div>
   </div>
-
-  <div style="max-width:1340px;margin:0 auto;padding:22px 18px 120px;display:grid;grid-template-columns:{{ gridCols }};gap:20px;align-items:start;">
-
-    <div style="display:flex;flex-direction:column;gap:14px;min-width:0;">
-
-      <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;">
-        <div>
-          <p style="margin:0 0 6px;text-transform:uppercase;letter-spacing:.16em;font-size:11px;color:#93c5fd;">{{ eyebrow }}</p>
-          <h1 style="margin:0;font-size:1.7rem;letter-spacing:-.02em;font-weight:700;">{{ title }}</h1>
-          <p style="margin:7px 0 0;color:rgba(226,232,240,.72);font-size:13.5px;">{{ sub }}</p>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
-          <sc-for list="{{ togglesView }}" as="t" hint-placeholder-count="4">
-            <button onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.dot }} {{ t.label }}</button>
-          </sc-for>
-        </div>
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:12px;min-height:240px;">
-
-        <div style="align-self:flex-end;max-width:min(680px,94%);border-radius:16px;padding:13px 15px;border:1px solid rgba(99,102,241,.35);background:rgba(79,70,229,.14);">
-          <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#c7d2fe;margin-bottom:6px;">{{ userPill }}</div>
-          <div style="font-size:14px;line-height:1.55;color:#eef1ff;">{{ brief }}</div>
-        </div>
-
-        <sc-if value="{{ running }}" hint-placeholder-val="{{ true }}">
-          <div style="align-self:stretch;border-radius:18px;padding:16px 16px 14px;border:1px solid rgba(148,163,184,.18);background:rgba(15,23,42,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);">
-
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-              <span style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#c7d2fe;font-weight:600;">{{ swarmPill }}</span>
-              <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#64748b;">{{ elapsedTxt }}</span>
-              <div style="flex:1;height:3px;border-radius:3px;background:rgba(148,163,184,.14);overflow:hidden;max-width:140px;">
-                <div style="height:100%;width:{{ progressW }};background:linear-gradient(90deg,#a5b4fc,#38bdf8);transition:width .12s linear;"></div>
-              </div>
-            </div>
-
-            <div style="display:flex;align-items:flex-start;gap:2px;flex-wrap:wrap;padding:6px 0 14px;">
-              <sc-for list="{{ rail }}" as="r" hint-placeholder-count="6">
-                <div style="display:flex;align-items:center;gap:2px;">
-                  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:64px;">
-                    <div style="width:44px;height:44px;border-radius:13px;display:grid;place-items:center;font-size:20px;border:1px solid {{ r.borderColor }};background:{{ r.bg }};{{ r.glow }}transition:border-color .3s,background .3s;">{{ r.emoji }}</div>
-                    <span style="font-size:9px;letter-spacing:.03em;text-transform:uppercase;color:{{ r.labelColor }};text-align:center;line-height:1.2;">{{ r.name }}</span>
-                  </div>
-                  <sc-if value="{{ r.notLast }}" hint-placeholder-val="{{ true }}">
-                    <span style="color:{{ r.arrowColor }};font-size:15px;margin:0 1px 16px;transition:color .3s;">→</span>
-                  </sc-if>
-                </div>
-              </sc-for>
-            </div>
-
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:10px;">
-              <sc-for list="{{ agents }}" as="a" hint-placeholder-count="0">
-                <div style="border-radius:14px;border:1px solid {{ a.cardBorder }};background:rgba(2,6,23,.5);padding:12px 13px;animation:cardIn .45s ease both;">
-                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">
-                    <span style="font-size:20px;line-height:1;">{{ a.emoji }}</span>
-                    <div style="display:flex;flex-direction:column;gap:1px;min-width:0;">
-                      <span style="font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#c7d2fe;">{{ a.idx }} · {{ a.name }}</span>
-                      <span style="font-size:11px;color:#8b97b0;">{{ a.role }}</span>
-                    </div>
-                    <div style="flex:1"></div>
-                    <span style="display:inline-flex;align-items:center;gap:6px;font-size:10.5px;color:#94a3b8;white-space:nowrap;">
-                      <span style="width:7px;height:7px;border-radius:50%;background:{{ a.dotColor }};"></span>{{ a.statusLabel }}
-                    </span>
-                  </div>
-                  <sc-if value="{{ a.thinking }}" hint-placeholder-val="{{ true }}">
-                    <div style="display:flex;gap:5px;padding:5px 2px 3px;">
-                      <span style="width:7px;height:7px;border-radius:50%;background:#a5b4fc;animation:blink 1s infinite;"></span>
-                      <span style="width:7px;height:7px;border-radius:50%;background:#a5b4fc;animation:blink 1s .2s infinite;"></span>
-                      <span style="width:7px;height:7px;border-radius:50%;background:#a5b4fc;animation:blink 1s .4s infinite;"></span>
-                    </div>
-                  </sc-if>
-                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;line-height:1.55;color:#dbe3f4;display:flex;flex-direction:column;gap:2px;">
-                    <sc-for list="{{ a.lines }}" as="ln" hint-placeholder-count="0">
-                      <div style="white-space:pre-wrap;word-break:break-word;animation:fadeUp .28s ease both;">{{ ln.tx }}</div>
-                    </sc-for>
-                  </div>
-                </div>
-              </sc-for>
-            </div>
-
-            <sc-if value="{{ synthVisible }}" hint-placeholder-val="{{ true }}">
-              <div style="margin-top:12px;border-radius:16px;padding:16px 18px;border:1px solid rgba(56,189,248,.4);background:linear-gradient(180deg,rgba(99,102,241,.16),rgba(14,165,233,.06));box-shadow:0 0 50px rgba(56,189,248,.12);animation:cardIn .5s ease both;">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-                  <span style="font-size:20px;">✨</span>
-                  <span style="font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#e8ecff;">{{ deliverable }}</span>
-                  <span style="font-size:11px;color:#7dd3fc;border:1px solid rgba(56,189,248,.4);border-radius:999px;padding:2px 9px;">Synthesizer</span>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:7px;">
-                  <sc-for list="{{ synthLines }}" as="ln" hint-placeholder-count="0">
-                    <div style="animation:fadeUp .3s ease both;">
-                      <sc-if value="{{ ln.isRec }}" hint-placeholder-val="{{ true }}"><div style="font-size:15px;font-weight:600;color:#e8ecff;line-height:1.45;">{{ ln.tx }}</div></sc-if>
-                      <sc-if value="{{ ln.isH }}" hint-placeholder-val="{{ true }}"><div style="margin-top:7px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#a5b4fc;">{{ ln.tx }}</div></sc-if>
-                      <sc-if value="{{ ln.isB }}" hint-placeholder-val="{{ true }}"><div style="display:flex;gap:9px;font-size:13.5px;color:#dbe3f4;line-height:1.5;"><span style="color:#38bdf8;">▸</span><span>{{ ln.tx }}</span></div></sc-if>
-                      <sc-if value="{{ ln.isRisk }}" hint-placeholder-val="{{ true }}"><div style="margin-top:6px;font-size:12.5px;color:#fcd9b6;background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.25);border-radius:10px;padding:8px 11px;">⚠ {{ ln.tx }}</div></sc-if>
-                    </div>
-                  </sc-for>
-                </div>
-              </div>
-            </sc-if>
-
-            <sc-if value="{{ isDone }}" hint-placeholder-val="{{ true }}">
-              <div style="margin-top:12px;display:flex;align-items:center;gap:10px;font-size:12px;color:#86efac;">
-                <span style="width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 9px #4ade80;"></span>
-                <span>{{ doneFoot }}</span>
-              </div>
-            </sc-if>
-
-          </div>
-        </sc-if>
-
-      </div>
-
-      <div style="position:sticky;bottom:0;padding-top:10px;background:linear-gradient(180deg,transparent,rgba(7,10,18,.95) 24%);">
-        <div style="border:1px solid rgba(148,163,184,.16);border-radius:16px;background:rgba(15,23,42,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:13px;display:flex;flex-direction:column;gap:11px;">
-          <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;display:flex;align-items:center;gap:8px;"><span style="color:#a5b4fc;">●</span>{{ briefLabel }}</div>
-          <div style="font-size:13.5px;line-height:1.55;color:#e8ecff;border:1px solid rgba(148,163,184,.18);border-radius:12px;background:rgba(15,23,42,.55);padding:11px 12px;">{{ brief }}</div>
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#64748b;flex:1;">{{ composerHint }}</span>
-            <button onClick="{{ togglePres }}" style="{{ presStyle }}">{{ presLabel }}</button>
-            <button onClick="{{ runClick }}" style="border:0;border-radius:12px;padding:11px 18px;font-weight:600;font-size:13.5px;cursor:pointer;color:#0b1020;background:linear-gradient(135deg,#a5b4fc,#38bdf8);box-shadow:0 12px 36px rgba(56,189,248,.22);">{{ runLabel }}</button>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <sc-if value="{{ showMissions }}" hint-placeholder-val="{{ true }}">
-      <aside style="position:sticky;top:66px;display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:16px;border:1px solid rgba(148,163,184,.18);background:rgba(15,23,42,.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);align-self:start;">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <h2 style="margin:0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#c7d2fe;">{{ sideTitle }}</h2>
-          <span style="font-size:11px;color:#94a3b8;border:1px solid rgba(148,163,184,.28);border-radius:8px;padding:4px 9px;">{{ newMission }}</span>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <sc-for list="{{ missionsView }}" as="m" hint-placeholder-count="4">
-            <button onClick="{{ m.onClick }}" style="{{ m.style }}">
-              <span style="font-weight:600;font-size:13px;line-height:1.35;color:#e8ecff;">{{ m.title }}</span>
-              <span style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:{{ m.statusColor }};">{{ m.statusLabel }}</span>
-            </button>
-          </sc-for>
-        </div>
-        <div style="margin-top:2px;border-top:1px solid rgba(148,163,184,.14);padding-top:12px;">
-          <div style="border-radius:12px;border:1px solid rgba(34,197,94,.25);background:rgba(34,197,94,.06);padding:11px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;">
-              <span style="width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 10px #4ade80;animation:blink 1.6s infinite;"></span>
-              <span style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#86efac;font-weight:600;">{{ localTitle }}</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#cbd5e1;">
-              <div style="display:flex;justify-content:space-between;"><span style="color:#8b97b0;">LLM</span><span style="font-family:'IBM Plex Mono',monospace;">llama3.2:3b</span></div>
-              <div style="display:flex;justify-content:space-between;"><span style="color:#8b97b0;">{{ memLabel }}</span><span style="font-family:'IBM Plex Mono',monospace;">Chroma</span></div>
-              <div style="display:flex;justify-content:space-between;"><span style="color:#8b97b0;">{{ netLabel }}</span><span style="font-family:'IBM Plex Mono',monospace;color:#86efac;">{{ netVal }}</span></div>
-            </div>
-          </div>
-        </div>
-      </aside>
-    </sc-if>
-
-  </div>
-
-  <sc-if value="{{ presentation }}" hint-placeholder-val="{{ true }}">
-    <div style="position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;justify-content:center;padding:0 16px 22px;pointer-events:none;">
-      <div style="pointer-events:auto;display:flex;align-items:center;gap:14px;padding:12px 20px;border-radius:999px;border:1px solid rgba(129,140,248,.38);background:rgba(11,15,26,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 18px 60px rgba(2,6,23,.6);max-width:calc(100vw - 32px);">
-        <span style="display:inline-flex;width:8px;height:8px;border-radius:50%;background:#38bdf8;box-shadow:0 0 12px #38bdf8;flex:0 0 auto;"></span>
-        <span style="font-size:14.5px;font-weight:500;letter-spacing:.01em;">{{ caption }}</span>
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7c89a8;flex:0 0 auto;">{{ progress }}%</span>
-      </div>
-    </div>
-  </sc-if>
-
 </div>
-</x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:860},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;fr&quot;,&quot;en&quot;],&quot;default&quot;:&quot;fr&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Démo&quot;},&quot;autoPlay&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Démo&quot;},&quot;speed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.5,&quot;max&quot;:2,&quot;step&quot;:0.25,&quot;default&quot;:1,&quot;unit&quot;:&quot;×&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Démo&quot;},&quot;showMissions&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Mise en page&quot;}}">
-class Component extends DCLogic {
-  constructor(props) {
-    super(props);
-    this.state = {
-      lang: props.lang === 'en' ? 'en' : 'fr',
-      phase: 'idle',
-      elapsed: 0,
-      presentation: !!props.autoPlay,
-      tog: { swarm: true, memory: true, web: false, exec: true },
-    };
-    this.LEAD = 500; this.THINK = 650; this.GAP = 255; this.PAD = 520;
-    this.STHINK = 420; this.TAIL = 900;
-    this.RAIL = [
-      ['\uD83D\uDD0D', 'Researcher'], ['\uD83C\uDFAF', 'Strategist'], ['\uD83D\uDCBB', 'Coder'],
-      ['\u26A1', 'Executor'], ['\uD83D\uDD2C', 'Critic'], ['\u2728', 'Synthesizer'],
-    ];
-    this.buildData();
-    this.buildTimeline();
+</div>
+
+<script>
+const T = {
+  fr: {
+    live: 'Connecté', sbTitle: 'Missions exemples', eyebrow: 'Console Interactive',
+    ctitle: 'AetherSwarm v1', csub: 'Pipeline 6 agents — 100% local, zéro SaaS',
+    briefLabel: 'Mission', btnRun: '▶ Lancer le Swarm', btnRunning: 'Agents en cours…',
+    idleText: 'Sélectionne une mission ou écris ton brief, puis lance le Swarm.',
+    agents: ['Researcher','Strategist','Coder','Executor','Critic','Synthesizer'],
+    agentEmoji: ['🔍','🧠','💻','⚡','🔬','✨'],
+    missions: [
+      {label:'Analyse marché', title:'Opportunités outils IA pour solopreneurs', brief:'Analyse les tendances actuelles du marché des outils IA pour solopreneurs et propose 3 opportunités de produits à fort potentiel.'},
+      {label:'Stratégie contenu', title:'Plan de contenu X / LinkedIn 30 jours', brief:'Crée un plan de contenu 30 jours pour X et LinkedIn ciblant les solopreneurs qui veulent automatiser avec l\'IA.'},
+      {label:'Audit produit', title:'Optimiser un SaaS B2B à 0 client', brief:'Audite un SaaS B2B qui n\'a pas encore de clients et propose un plan d\'action Go-To-Market pour les 90 premiers jours.'},
+      {label:'Recherche concurrence', title:'Benchmark des outils no-code 2025', brief:'Compare les 5 meilleurs outils no-code 2025 pour créer des apps IA et identifie le meilleur pour un solopreneur sans dev.'},
+    ],
+    outputs: [
+      ['🔍 Researcher', 'Collecte de données en cours…\n\nSources analysées :\n• Google Trends: "AI tools for solopreneurs" +420% YoY\n• Product Hunt: 340 nouveaux outils IA en Q1 2025\n• Reddit r/solopreneur: 67k membres, +12k en 3 mois\n\nSignaux identifiés :\n1. Demande forte d\'automatisation des tâches répétitives\n2. Frustration avec les SaaS trop chers (>50€/mois)\n3. Besoin d\'outils qui tournent localement (privacy)'],
+      ['🧠 Strategist', 'Analyse stratégique complète\n\nOpportunités détectées :\n\n① AGENTS LOCAUX (potentiel élevé)\n   Gap: outils locaux + abordables + simples\n   TAM estimé: 2.3M solopreneurs EU/NA\n   Prix cible: 29-49€ one-time\n\n② TEMPLATES IA SECTORIELS (potentiel moyen)\n   Gap: prompts génériques vs. use cases spécifiques\n   Modèle: pack à 9-19€ par vertical\n\n③ AUDIT IA AUTOMATISÉ (potentiel élevé)\n   Gap: auto-diagnostic sans consultant\n   Prix cible: 79-149€/rapport'],
+      ['💻 Coder', 'Prototype MVP — Agent Local Solopreneur\n\n```python\nfrom langgraph.graph import StateGraph\nfrom langchain_community.llms import Ollama\n\nllm = Ollama(model="llama3.2:3b")\n\ndef research_agent(state):\n    """Collecte données marché"""\n    return {"data": llm.invoke(state["query"])}\n\ndef strategy_agent(state):\n    """Génère recommandations"""\n    prompt = f"Brief:{state[\'query\']}\\nData:{state[\'data\']}\\n→ Top 3 actions:"\n    return {"strategy": llm.invoke(prompt)}\n\ngraph = StateGraph(dict)\ngraph.add_node("research", research_agent)\ngraph.add_node("strategy", strategy_agent)\ngraph.add_edge("research", "strategy")\n```'],
+      ['⚡ Executor', 'Exécution validée ✓\n\nTests unitaires passés : 12/12\nLatence moyenne par agent : 2.3s (Ollama local)\nMemory usage : 4.2GB RAM (llama3.2:3b)\n\nPlan d\'action opérationnel :\n→ Semaine 1: MVP en Python + FastAPI\n→ Semaine 2: Interface web minimale\n→ Semaine 3: Beta test (5 solopreneurs)\n→ Semaine 4: Lancement Product Hunt'],
+      ['🔬 Critic', 'Revue critique du plan\n\n✅ Points forts :\n• Marché validé par les données\n• Modèle one-time vs SaaS = avantage concurrentiel\n• Tech stack mature (LangGraph + Ollama)\n\n⚠️ Points d\'attention :\n• Qualité LLM local < GPT-4 (gap à gérer)\n• Onboarding utilisateur à simplifier\n• Support technique = charge non anticipée\n\n💡 Recommandation : ajouter guide setup vidéo (5 min)'],
+      ['✨ Synthesizer', 'SYNTHÈSE FINALE — AetherSwarm Analysis\n\nTOP 3 OPPORTUNITÉS VALIDÉES :\n\n1. 🥇 Agent IA Local Pack (39€ one-time)\n   Score: 94/100 · Effort: 3 semaines · ROI: élevé\n   → Différenciant: local + no subscription\n\n2. 🥈 Templates Prompts Verticaux (9-19€)\n   Score: 82/100 · Effort: 1 semaine · ROI: moyen\n   → Différenciant: spécialisation sectorielle\n\n3. 🥉 Audit IA Auto-Report (99€)\n   Score: 77/100 · Effort: 4 semaines · ROI: fort\n   → Différenciant: rapport auto sans consultant\n\nRECOMMANDATION : Lancez d\'abord l\'option 1 — c\'est exactement ce qu\'AetherSwarm propose. 🎯'],
+    ]
+  },
+  en: {
+    live: 'Connected', sbTitle: 'Sample missions', eyebrow: 'Interactive Console',
+    ctitle: 'AetherSwarm v1', csub: '6-agent pipeline — 100% local, zero SaaS',
+    briefLabel: 'Mission', btnRun: '▶ Run the Swarm', btnRunning: 'Agents running…',
+    idleText: 'Select a mission or write your brief, then run the Swarm.',
+    agents: ['Researcher','Strategist','Coder','Executor','Critic','Synthesizer'],
+    agentEmoji: ['🔍','🧠','💻','⚡','🔬','✨'],
+    missions: [
+      {label:'Market analysis', title:'AI tool opportunities for solopreneurs', brief:'Analyze current trends in the AI tools market for solopreneurs and propose 3 high-potential product opportunities.'},
+      {label:'Content strategy', title:'30-day X / LinkedIn content plan', brief:'Create a 30-day content plan for X and LinkedIn targeting solopreneurs who want to automate with AI.'},
+      {label:'Product audit', title:'Optimize a B2B SaaS with 0 customers', brief:'Audit a B2B SaaS with no customers yet and propose a Go-To-Market action plan for the first 90 days.'},
+      {label:'Competitor research', title:'No-code tools benchmark 2025', brief:'Compare the top 5 no-code tools in 2025 for building AI apps and identify the best one for a non-dev solopreneur.'},
+    ],
+    outputs: [
+      ['🔍 Researcher', 'Data collection in progress…\n\nSources analyzed:\n• Google Trends: "AI tools for solopreneurs" +420% YoY\n• Product Hunt: 340 new AI tools in Q1 2025\n• Reddit r/solopreneur: 67k members, +12k in 3 months\n\nSignals identified:\n1. Strong demand for automating repetitive tasks\n2. Frustration with overpriced SaaS (>$50/month)\n3. Need for tools that run locally (privacy-first)'],
+      ['🧠 Strategist', 'Strategic analysis complete\n\nOpportunities detected:\n\n① LOCAL AGENTS (high potential)\n   Gap: local + affordable + simple tools\n   Estimated TAM: 2.3M solopreneurs EU/NA\n   Target price: $29-49 one-time\n\n② SECTOR AI TEMPLATES (medium potential)\n   Gap: generic prompts vs. specific use cases\n   Model: $9-19 per vertical pack\n\n③ AUTOMATED AI AUDIT (high potential)\n   Gap: self-diagnosis without consultant\n   Target price: $79-149/report'],
+      ['💻 Coder', 'MVP Prototype — Local Solopreneur Agent\n\n```python\nfrom langgraph.graph import StateGraph\nfrom langchain_community.llms import Ollama\n\nllm = Ollama(model="llama3.2:3b")\n\ndef research_agent(state):\n    """Collect market data"""\n    return {"data": llm.invoke(state["query"])}\n\ndef strategy_agent(state):\n    """Generate recommendations"""\n    prompt = f"Brief:{state[\'query\']}\\nData:{state[\'data\']}\\n→ Top 3 actions:"\n    return {"strategy": llm.invoke(prompt)}\n\ngraph = StateGraph(dict)\ngraph.add_node("research", research_agent)\ngraph.add_node("strategy", strategy_agent)\ngraph.add_edge("research", "strategy")\n```'],
+      ['⚡ Executor', 'Execution validated ✓\n\nUnit tests passed: 12/12\nAverage latency per agent: 2.3s (local Ollama)\nMemory usage: 4.2GB RAM (llama3.2:3b)\n\nOperational action plan:\n→ Week 1: MVP in Python + FastAPI\n→ Week 2: Minimal web interface\n→ Week 3: Beta test (5 solopreneurs)\n→ Week 4: Product Hunt launch'],
+      ['🔬 Critic', 'Critical review of the plan\n\n✅ Strengths:\n• Market validated by data\n• One-time vs SaaS model = competitive advantage\n• Mature tech stack (LangGraph + Ollama)\n\n⚠️ Watch out:\n• Local LLM quality < GPT-4 (gap to manage)\n• User onboarding needs simplification\n• Technical support = unanticipated load\n\n💡 Recommendation: add a 5-min video setup guide'],
+      ['✨ Synthesizer', 'FINAL SYNTHESIS — AetherSwarm Analysis\n\nTOP 3 VALIDATED OPPORTUNITIES:\n\n1. 🥇 Local AI Agent Pack ($39 one-time)\n   Score: 94/100 · Effort: 3 weeks · ROI: high\n   → Differentiator: local + no subscription\n\n2. 🥈 Vertical Prompt Templates ($9-19)\n   Score: 82/100 · Effort: 1 week · ROI: medium\n   → Differentiator: sector specialization\n\n3. 🥉 Auto AI Audit Report ($99)\n   Score: 77/100 · Effort: 4 weeks · ROI: strong\n   → Differentiator: auto report without consultant\n\nRECOMMENDATION: Launch option 1 first — that\'s exactly what AetherSwarm does. 🎯'],
+    ]
   }
+};
 
-  componentDidMount() {
-    if (this.state.presentation) this.startRun();
-  }
-  componentWillUnmount() { this.stop(); }
+let lang = 'fr';
+let running = false;
+let selectedMission = null;
 
-  buildTimeline() {
-    const counts = this.DATA.fr.agents.map(a => a.out.length);
-    let t = this.LEAD; this.AG = [];
-    counts.forEach((L) => {
-      const start = t, think = t + this.THINK, doneAt = t + this.THINK + L * this.GAP;
-      const end = doneAt + this.PAD;
-      this.AG.push({ start, think, doneAt, end, L, lineAt: (k) => start + this.THINK + (k + 1) * this.GAP });
-      t = end;
-    });
-    this.SYNTH_START = t;
-    const SL = this.DATA.fr.synth.length;
-    this.synthLineAt = (k) => this.SYNTH_START + this.STHINK + (k + 1) * this.GAP;
-    this.SYNTH_DONE = this.SYNTH_START + this.STHINK + SL * this.GAP;
-    this.END = this.SYNTH_DONE + this.TAIL;
-  }
+function t() { return T[lang]; }
 
-  spd() { return this.props.speed ?? 1; }
-  stop() { if (this._t) { clearInterval(this._t); this._t = null; } if (this._loop) { clearTimeout(this._loop); this._loop = null; } }
+function setLang(l) {
+  lang = l;
+  document.querySelectorAll('.lang-btn').forEach((b,i) => b.classList.toggle('active', i===(l==='fr'?0:1)));
+  render();
+}
 
-  startRun() {
-    this.stop();
-    this.setState({ elapsed: 0, phase: 'running' });
-    this._t = setInterval(() => this.tick(), 55);
-  }
+function render() {
+  const d = t();
+  document.getElementById('live-label').textContent = d.live;
+  document.getElementById('sb-title').textContent = d.sbTitle;
+  document.getElementById('eyebrow').textContent = d.eyebrow;
+  document.getElementById('ctitle').textContent = d.ctitle;
+  document.getElementById('csub').textContent = d.csub;
+  document.getElementById('brief-label').textContent = d.briefLabel;
+  document.getElementById('idle-text').textContent = d.idleText;
+  document.querySelector('.btn-label').textContent = d.btnRun;
+  document.querySelector('.running-label').textContent = d.btnRunning;
+  document.getElementById('brief').placeholder = d.missions[0].brief.slice(0,60)+'…';
 
-  tick() {
-    this.setState((s) => {
-      const ne = s.elapsed + 55 * this.spd();
-      if (ne >= this.END) return { elapsed: this.END, phase: 'done' };
-      return { elapsed: ne, phase: 'running' };
-    }, () => {
-      if (this.state.phase === 'done') {
-        this.stop();
-        if (this.state.presentation) this._loop = setTimeout(() => this.startRun(), 3200);
-      }
-    });
-  }
+  // Pipeline
+  const pipe = document.getElementById('pipeline');
+  pipe.innerHTML = '';
+  d.agents.forEach((name, i) => {
+    const step = document.createElement('div');
+    step.className = 'agent-step';
+    step.id = 'agent-'+i;
+    step.innerHTML = `<div class="agent-icon" id="icon-${i}">${d.agentEmoji[i]}</div><div class="agent-name">${name}</div>`;
+    pipe.appendChild(step);
+    if(i < d.agents.length-1) {
+      const arr = document.createElement('div');
+      arr.className = 'agent-arrow';
+      pipe.appendChild(arr);
+    }
+  });
 
-  runClick() {
-    if (this.state.phase === 'running') { this.stop(); this.setState({ phase: 'idle', elapsed: 0 }); return; }
-    this.setState({ presentation: false });
-    this.startRun();
-  }
+  // Missions
+  const ms = document.getElementById('missions');
+  ms.innerHTML = '';
+  d.missions.forEach((m, i) => {
+    const card = document.createElement('div');
+    card.className = 'mission-card' + (selectedMission===i ? ' active' : '');
+    card.innerHTML = `<div class="mission-label">${m.label}</div><div class="mission-title">${m.title}</div>`;
+    card.onclick = () => selectMission(i);
+    ms.appendChild(card);
+  });
+}
 
-  togglePres() {
-    const on = !this.state.presentation;
-    this.setState({ presentation: on });
-    if (on) this.startRun(); else this.stop();
-  }
+function selectMission(i) {
+  selectedMission = i;
+  document.getElementById('brief').value = t().missions[i].brief;
+  render();
+}
 
-  setLang(l) { this.setState({ lang: l }); }
-  toggleTog(k) { this.setState((s) => ({ tog: { ...s.tog, [k]: !s.tog[k] } })); }
+async function runSwarm() {
+  if(running) return;
+  const brief = document.getElementById('brief').value.trim();
+  if(!brief) { document.getElementById('brief').focus(); return; }
 
-  renderVals() {
-    const D = this.DATA[this.state.lang];
-    const u = D.ui;
-    const t = this.state.elapsed;
-    const phase = this.state.phase;
-    const running = phase !== 'idle';
-    const isDone = phase === 'done';
+  running = true;
+  const btn = document.getElementById('run-btn');
+  btn.classList.add('running');
+  btn.disabled = true;
 
-    const dotFor = (st) => st === 'done' ? '#86efac' : st === 'thinking' ? '#fde047' : st === 'streaming' ? '#38bdf8' : '#64748b';
-    const agents = D.agents.map((a, i) => {
-      const T = this.AG[i];
-      let st = 'pending';
-      if (t >= T.start) st = t < T.think ? 'thinking' : (t < T.doneAt ? 'streaming' : 'done');
-      const n = (st === 'pending' || st === 'thinking') ? 0 : a.out.filter((_, k) => T.lineAt(k) <= t).length;
-      return {
-        idx: i + 1, emoji: a.emoji, name: a.name, role: a.role,
-        started: t >= T.start, thinking: st === 'thinking',
-        dotColor: dotFor(st),
-        cardBorder: st === 'done' ? 'rgba(56,189,248,.28)' : st === 'pending' ? 'rgba(148,163,184,.14)' : 'rgba(129,140,248,.4)',
-        statusLabel: u.st[st],
-        lines: a.out.slice(0, n).map((tx, k) => ({ k: a.emoji + i + '-' + k, tx })),
-      };
-    }).filter(a => a.started);
+  const output = document.getElementById('output');
+  output.innerHTML = '';
 
-    let activeIdx = -1;
-    this.AG.forEach((T, i) => { if (t >= T.start && t < T.end) activeIdx = i; });
-    if (t >= this.SYNTH_START) activeIdx = 5;
+  const agents = t().agents;
+  const outputs = t().outputs;
 
-    const rail = this.RAIL.map(([emoji, name], i) => {
-      const done = i < 5 ? t >= this.AG[i].doneAt : t >= this.SYNTH_DONE;
-      const active = i === activeIdx && !isDone;
-      return {
-        emoji, name, notLast: i < 5,
-        borderColor: active ? '#818cf8' : done ? 'rgba(56,189,248,.55)' : 'rgba(148,163,184,.2)',
-        bg: active ? 'rgba(99,102,241,.24)' : done ? 'rgba(14,165,233,.12)' : 'rgba(2,6,23,.45)',
-        glow: active ? 'box-shadow:0 0 0 4px rgba(129,140,248,.16);' : '',
-        labelColor: active ? '#c7d2fe' : done ? '#7dd3fc' : '#5b677e',
-        arrowColor: done ? 'rgba(56,189,248,.5)' : '#3b465c',
-      };
-    });
-
-    const synthVisible = t >= this.SYNTH_START;
-    const sn = synthVisible ? D.synth.filter((_, k) => this.synthLineAt(k) <= t).length : 0;
-    const synthLines = D.synth.slice(0, sn).map((it, k) => ({
-      k: 'syn-' + k, tx: it.tx,
-      isRec: it.kind === 'rec', isH: it.kind === 'h', isB: it.kind === 'b', isRisk: it.kind === 'risk',
-    }));
-
-    let caption;
-    if (isDone) caption = u.caps.done;
-    else if (!running) caption = u.caps.intro;
-    else if (t >= this.SYNTH_START) caption = u.caps.synth;
-    else caption = u.caps.agent[Math.max(0, activeIdx)];
-
-    const progress = Math.min(100, Math.round(t / this.END * 100));
-    const elapsedTxt = (Math.min(t, this.END) / 1000).toFixed(1) + 's · ' + u.local6;
-
-    const tg = this.state.tog;
-    const togDef = [
-      { key: 'swarm', label: u.tog.swarm, danger: false },
-      { key: 'memory', label: u.tog.memory, danger: false },
-      { key: 'web', label: u.tog.web, danger: false },
-      { key: 'exec', label: u.tog.exec, danger: true },
-    ];
-    const togStyle = (on, danger) => {
-      const base = 'border-radius:999px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;';
-      if (on && danger) return base + 'border:1px solid rgba(248,113,113,.5);background:rgba(248,113,113,.14);color:#fecaca;';
-      if (on) return base + 'border:1px solid rgba(129,140,248,.5);background:rgba(99,102,241,.18);color:#c7d2fe;';
-      return base + 'border:1px solid rgba(148,163,184,.22);background:transparent;color:#7c89a8;';
-    };
-    const togglesView = togDef.map(d => ({
-      label: d.label, dot: tg[d.key] ? '\u25CF' : '\u25CB',
-      style: togStyle(tg[d.key], d.danger),
-      onClick: () => this.toggleTog(d.key),
-    }));
-
-    const stColors = { running: '#fde047', completed: '#86efac', draft: '#64748b' };
-    const activeStatus = isDone ? 'completed' : phase === 'running' ? 'running' : 'draft';
-    const missionsView = D.missions.map((m, i) => {
-      const status = i === 0 ? activeStatus : 'completed';
-      const isActive = i === 0;
-      const style = 'text-align:left;border-radius:12px;border:1px solid ' + (isActive ? 'rgba(99,102,241,.55)' : 'rgba(148,163,184,.14)') +
-        ';background:' + (isActive ? 'rgba(99,102,241,.16)' : 'rgba(2,6,23,.4)') +
-        ';padding:10px 11px;cursor:pointer;display:flex;flex-direction:column;gap:5px;';
-      return { title: m.title, statusLabel: u.mst[status], statusColor: stColors[status], style, onClick: () => this.runClick() };
+  for(let i=0; i<agents.length; i++) {
+    // Activate agent icon
+    document.querySelectorAll('.agent-icon').forEach((el,j) => {
+      el.classList.remove('active','done');
+      if(j<i) el.classList.add('done');
+      if(j===i) el.classList.add('active');
     });
 
-    const segActive = 'border:0;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;background:rgba(99,102,241,.3);color:#e8ecff;';
-    const segIdle = 'border:0;padding:6px 13px;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:#7c89a8;';
+    await sleep(800);
 
-    return {
-      ...u,
-      lang: this.state.lang, phase, running, isDone,
-      brief: D.brief,
-      agents, rail, synthVisible, synthLines, caption,
-      presentation: this.state.presentation,
-      progress, progressW: progress + '%', elapsedTxt,
-      runLabel: isDone ? u.run.done : phase === 'running' ? u.run.running : u.run.idle,
-      presLabel: this.state.presentation ? u.pres.on : u.pres.off,
-      presStyle: 'border-radius:12px;padding:11px 15px;font-weight:600;font-size:13px;cursor:pointer;' + (this.state.presentation
-        ? 'border:1px solid rgba(56,189,248,.6);background:rgba(56,189,248,.14);color:#7dd3fc;'
-        : 'border:1px solid rgba(129,140,248,.45);background:rgba(99,102,241,.12);color:#e8ecff;'),
-      togglesView, missionsView,
-      showMissions: this.props.showMissions ?? true,
-      gridCols: (this.props.showMissions ?? true) ? 'minmax(0,1fr) minmax(280px,330px)' : 'minmax(0,1fr)',
-      setFr: () => this.setLang('fr'), setEn: () => this.setLang('en'),
-      frStyle: this.state.lang === 'fr' ? segActive : segIdle,
-      enStyle: this.state.lang === 'en' ? segActive : segIdle,
-      togglePres: () => this.togglePres(), runClick: () => this.runClick(),
-    };
+    // Stream output
+    const block = document.createElement('div');
+    block.className = 'agent-output output-block';
+    block.innerHTML = `<div class="agent-output-header">${outputs[i][0]}</div><div class="agent-output-body" id="out-${i}"></div>`;
+    output.appendChild(block);
+    output.scrollTop = output.scrollHeight;
+
+    await typeText('out-'+i, outputs[i][1], 6);
+    output.scrollTop = output.scrollHeight;
   }
 
-  buildData() {
-    this.DATA = {
-      fr: {
-        ui: {
-          eyebrow: 'AETHER SWARM \u00B7 CONSOLE LOCALE', title: 'Console',
-          sub: '6 agents \u00B7 Ollama \u00B7 m\u00E9moire Chroma \u2014 sur ta machine',
-          localBadge: 'Ollama \u00B7 llama3.2:3b', swarmPill: 'SWARM \u00B7 6 AGENTS', userPill: 'TOI',
-          deliverable: 'Recommandation int\u00E9gr\u00E9e', sideTitle: 'MISSIONS', newMission: '+ Nouvelle',
-          briefLabel: 'Mission', composerHint: '\u2318K \u00B7 Entr\u00E9e pour lancer',
-          localTitle: '100% LOCAL', memLabel: 'M\u00E9moire', netLabel: 'R\u00E9seau', netVal: 'aucun', local6: 'en local',
-          doneFoot: 'Mission termin\u00E9e \u00B7 aucun octet envoy\u00E9',
-          run: { idle: '\u25B6 Lancer la mission', running: '\u25A0 Arr\u00EAter', done: '\u21BB Rejouer' },
-          pres: { on: '\u25CF Pr\u00E9sentation', off: 'Mode pr\u00E9sentation' },
-          tog: { swarm: 'Swarm', memory: 'M\u00E9moire', web: 'Web DDG', exec: 'Executor' },
-          st: { pending: 'en attente', thinking: 'r\u00E9flexion\u2026', streaming: 'flux\u2026', done: 'termin\u00E9' },
-          mst: { running: 'en cours', completed: 'termin\u00E9', draft: 'brouillon' },
-          caps: {
-            intro: '1 brief \u2192 6 agents \u2192 1 livrable. 100% en local.',
-            agent: [
-              'Le Researcher cartographie ton d\u00E9p\u00F4t \u2014 en local',
-              'Le Strategist hi\u00E9rarchise les risques',
-              'Le Coder r\u00E9dige les correctifs',
-              "L'Executor ex\u00E9cute \u00B7 allowlist stricte",
-              'Le Critic challenge la sortie',
-            ],
-            synth: 'Le Synthesizer assemble un livrable actionnable',
-            done: "Mission termin\u00E9e \u2014 sans qu'une donn\u00E9e ne quitte ta machine",
-          },
-        },
-        brief: 'Audite la structure du d\u00E9p\u00F4t ~/projects/payments-api. Identifie les 3 plus gros risques techniques (dette, couplage, s\u00E9curit\u00E9), propose un plan de rem\u00E9diation en 2 sprints, et liste les fichiers \u00E0 modifier.',
-        agents: [
-          { emoji: '\uD83D\uDD0D', name: 'Researcher', role: 'Cartographie le d\u00E9p\u00F4t', out: [
-            '$ scan ~/projects/payments-api',
-            '\u2192 184 fichiers \u00B7 21 480 LOC \u00B7 Python 3.11',
-            '\u2192 couverture tests 38% \u00B7 47 d\u00E9pendances',
-            '\u2192 3 modules sans tests : billing/ webhooks/ refunds/',
-            '\u2192 secrets en clair dans config/settings.py',
-          ]},
-          { emoji: '\uD83C\uDFAF', name: 'Strategist', role: 'Hi\u00E9rarchise les risques', out: [
-            'Top 3 risques \u2014 impact \u00D7 probabilit\u00E9',
-            '1 \u00B7 S\u00C9CURIT\u00C9   secrets versionn\u00E9s + deps libres',
-            '2 \u00B7 COUPLAGE   cycle orders \u2194 billing \u00B7 9 imports',
-            '3 \u00B7 DETTE      webhooks/ \u00B7 fonction 240 lignes \u00B7 CC 31',
-            "\u2192 priorit\u00E9 : s\u00E9curit\u00E9 d'abord (bloquant prod)",
-          ]},
-          { emoji: '\uD83D\uDCBB', name: 'Coder', role: 'R\u00E9dige les correctifs', out: [
-            'Plan de rem\u00E9diation',
-            '\u2022 config/settings.py \u2192 os.environ + .env.example',
-            '\u2022 requirements.txt \u2192 pin exact (pip-tools)',
-            '\u2022 billing/service.py \u2192 ports/adapters \u00B7 casse le cycle',
-            '\u2022 webhooks/handler.py \u2192 4 handlers + dispatch',
-          ]},
-          { emoji: '\u26A1', name: 'Executor', role: 'Ex\u00E9cute \u00B7 allowlist', out: [
-            '$ radon cc webhooks/handler.py -s',
-            '  handle_event \u2026 F (31)',
-            '$ git grep -nE "(SECRET|KEY)\\s*=" config/',
-            '  settings.py:14: STRIPE_SECRET_KEY = "sk_live_\u2026"',
-            '\u2713 allowlist : 2 commandes lecture seule',
-          ]},
-          { emoji: '\uD83D\uDD2C', name: 'Critic', role: 'Challenge la sortie', out: [
-            "\u26A0 casser orders\u2194billing touche 6 endpoints \u2192 tests d'abord",
-            '\u26A0 rotation des cl\u00E9s Stripe obligatoire (d\u00E9j\u00E0 expos\u00E9es)',
-            '\u2713 s\u00E9quen\u00E7age en 2 sprints r\u00E9aliste',
-          ]},
-        ],
-        synth: [
-          { kind: 'rec', tx: 'S\u00E9curit\u00E9 en Sprint 1 (bloquant), d\u00E9couplage + dette en Sprint 2.' },
-          { kind: 'h', tx: 'Sprint 1 \u2014 S\u00E9curit\u00E9 & build' },
-          { kind: 'b', tx: "Secrets \u2192 variables d'env \u00B7 rotation des cl\u00E9s Stripe" },
-          { kind: 'b', tx: '\u00C9pingler les 47 d\u00E9pendances (pip-tools)' },
-          { kind: 'b', tx: 'CI : scan secrets + audit des d\u00E9pendances' },
-          { kind: 'h', tx: 'Sprint 2 \u2014 Architecture & dette' },
-          { kind: 'b', tx: 'Casser le cycle orders \u2194 billing (ports/adapters)' },
-          { kind: 'b', tx: 'Refactor webhooks/handler.py \u00B7 240 \u2192 4\u00D760 lignes' },
-          { kind: 'b', tx: 'Couverture 38% \u2192 70% sur billing/ & refunds/' },
-          { kind: 'risk', tx: 'Rotation des cl\u00E9s \u00E0 coordonner avec ops \u00B7 pr\u00E9voir des tests de non-r\u00E9gression.' },
-        ],
-        missions: [
-          { title: 'Audit d\u00E9p\u00F4t payments-api' },
-          { title: 'Plan de contenu \u2014 Q3' },
-          { title: 'Refactor module auth' },
-          { title: 'Veille IA \u2014 semaine 26' },
-        ],
-      },
-      en: {
-        ui: {
-          eyebrow: 'AETHER SWARM \u00B7 LOCAL CONSOLE', title: 'Console',
-          sub: '6 agents \u00B7 Ollama \u00B7 Chroma memory \u2014 on your machine',
-          localBadge: 'Ollama \u00B7 llama3.2:3b', swarmPill: 'SWARM \u00B7 6 AGENTS', userPill: 'YOU',
-          deliverable: 'Integrated recommendation', sideTitle: 'MISSIONS', newMission: '+ New',
-          briefLabel: 'Mission', composerHint: '\u2318K \u00B7 Enter to run',
-          localTitle: '100% LOCAL', memLabel: 'Memory', netLabel: 'Network', netVal: 'none', local6: 'local',
-          doneFoot: 'Mission complete \u00B7 zero bytes sent',
-          run: { idle: '\u25B6 Run mission', running: '\u25A0 Stop', done: '\u21BB Replay' },
-          pres: { on: '\u25CF Presentation', off: 'Presentation mode' },
-          tog: { swarm: 'Swarm', memory: 'Memory', web: 'Web DDG', exec: 'Executor' },
-          st: { pending: 'queued', thinking: 'thinking\u2026', streaming: 'streaming\u2026', done: 'done' },
-          mst: { running: 'running', completed: 'done', draft: 'draft' },
-          caps: {
-            intro: '1 brief \u2192 6 agents \u2192 1 deliverable. 100% local.',
-            agent: [
-              'Researcher maps your repo \u2014 locally',
-              'Strategist ranks the risks',
-              'Coder drafts the fixes',
-              'Executor runs them \u00B7 strict allowlist',
-              'Critic challenges the output',
-            ],
-            synth: 'Synthesizer assembles an actionable deliverable',
-            done: 'Mission complete \u2014 without a byte leaving your machine',
-          },
-        },
-        brief: 'Audit the ~/projects/payments-api repo structure. Find the 3 biggest technical risks (debt, coupling, security), propose a 2-sprint remediation plan, and list the files to change.',
-        agents: [
-          { emoji: '\uD83D\uDD0D', name: 'Researcher', role: 'Maps the repo', out: [
-            '$ scan ~/projects/payments-api',
-            '\u2192 184 files \u00B7 21,480 LOC \u00B7 Python 3.11',
-            '\u2192 test coverage 38% \u00B7 47 dependencies',
-            '\u2192 3 untested modules: billing/ webhooks/ refunds/',
-            '\u2192 plaintext secrets in config/settings.py',
-          ]},
-          { emoji: '\uD83C\uDFAF', name: 'Strategist', role: 'Ranks the risks', out: [
-            'Top 3 risks \u2014 impact \u00D7 likelihood',
-            '1 \u00B7 SECURITY   committed secrets + loose deps',
-            '2 \u00B7 COUPLING   orders \u2194 billing cycle \u00B7 9 imports',
-            '3 \u00B7 DEBT       webhooks/ \u00B7 240-line fn \u00B7 CC 31',
-            '\u2192 priority: security first (prod-blocking)',
-          ]},
-          { emoji: '\uD83D\uDCBB', name: 'Coder', role: 'Drafts the fixes', out: [
-            'Remediation plan',
-            '\u2022 config/settings.py \u2192 os.environ + .env.example',
-            '\u2022 requirements.txt \u2192 exact pins (pip-tools)',
-            '\u2022 billing/service.py \u2192 ports/adapters \u00B7 breaks cycle',
-            '\u2022 webhooks/handler.py \u2192 4 handlers + dispatch',
-          ]},
-          { emoji: '\u26A1', name: 'Executor', role: 'Runs \u00B7 allowlist', out: [
-            '$ radon cc webhooks/handler.py -s',
-            '  handle_event \u2026 F (31)',
-            '$ git grep -nE "(SECRET|KEY)\\s*=" config/',
-            '  settings.py:14: STRIPE_SECRET_KEY = "sk_live_\u2026"',
-            '\u2713 allowlist: 2 read-only commands',
-          ]},
-          { emoji: '\uD83D\uDD2C', name: 'Critic', role: 'Challenges output', out: [
-            '\u26A0 breaking orders\u2194billing hits 6 endpoints \u2192 tests first',
-            '\u26A0 Stripe key rotation required (already exposed)',
-            '\u2713 2-sprint sequencing is realistic',
-          ]},
-        ],
-        synth: [
-          { kind: 'rec', tx: 'Security in Sprint 1 (blocking), decoupling + debt in Sprint 2.' },
-          { kind: 'h', tx: 'Sprint 1 \u2014 Security & build' },
-          { kind: 'b', tx: 'Secrets \u2192 env vars \u00B7 rotate Stripe keys' },
-          { kind: 'b', tx: 'Pin all 47 dependencies (pip-tools)' },
-          { kind: 'b', tx: 'CI: secret scan + dependency audit' },
-          { kind: 'h', tx: 'Sprint 2 \u2014 Architecture & debt' },
-          { kind: 'b', tx: 'Break the orders \u2194 billing cycle (ports/adapters)' },
-          { kind: 'b', tx: 'Refactor webhooks/handler.py \u00B7 240 \u2192 4\u00D760 lines' },
-          { kind: 'b', tx: 'Coverage 38% \u2192 70% on billing/ & refunds/' },
-          { kind: 'risk', tx: 'Coordinate key rotation with ops \u00B7 add regression tests.' },
-        ],
-        missions: [
-          { title: 'Audit payments-api repo' },
-          { title: 'Content plan \u2014 Q3' },
-          { title: 'Refactor auth module' },
-          { title: 'AI watch \u2014 week 26' },
-        ],
-      },
-    };
+  // All done
+  document.querySelectorAll('.agent-icon').forEach(el => { el.classList.remove('active'); el.classList.add('done'); });
+
+  running = false;
+  btn.classList.remove('running');
+  btn.disabled = false;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function typeText(id, text, speed=8) {
+  const el = document.getElementById(id);
+  for(let i=0; i<text.length; i++) {
+    el.textContent += text[i];
+    if(i%3===0) await sleep(speed);
   }
 }
+
+render();
 </script>
 </body>
 </html>
