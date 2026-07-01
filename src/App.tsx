@@ -99,7 +99,7 @@ export default function App() {
   };
 
   const cycleLang = () => {
-    const order: Lang[] = ["fr", "en", "es"];
+    const order: Lang[] = ["fr", "en", "es", "it"];
     const next = order[(order.indexOf(lang) + 1) % order.length];
     setLang(next);
     play("click");
@@ -220,8 +220,8 @@ export default function App() {
 
   const unreadCount = state.messages.filter(m => !m.decrypted || (m.actionRequired && !m.actionCompleted)).length;
 
-  const LANG_LABELS: Record<Lang, string> = { fr: "FR", en: "EN", es: "ES" };
-  const NEXT_LANG: Record<Lang, string> = { fr: "EN", en: "ES", es: "FR" };
+  const LANG_LABELS: Record<Lang, string> = { fr: "FR", en: "EN", es: "ES", it: "IT" };
+  const NEXT_LANG: Record<Lang, string> = { fr: "EN", en: "ES", es: "IT", it: "FR" };
 
   return (
     <>
