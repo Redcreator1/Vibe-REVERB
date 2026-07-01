@@ -230,7 +230,7 @@ export default function App() {
     <div className="min-h-screen bg-reverb-dark text-white font-sans crt-grid flex flex-col justify-between">
       {/* Header */}
       <header className="bg-reverb-card border-b border-reverb-pink/30 px-4 py-3 sticky top-0 z-50 shadow-glow-pink">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3">
 
           {/* Logo */}
           <div className="flex items-center space-x-2.5">
@@ -251,9 +251,9 @@ export default function App() {
             </div>
           </div>
 
-          {/* Right controls */}
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className="flex items-center gap-2 sm:gap-6 text-xs font-mono">
+          {/* Right controls — wraps to its own row on mobile */}
+          <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 flex-wrap">
+            <div className="flex items-center gap-3 sm:gap-6 text-xs font-mono">
               <div className="hidden md:block">
                 <span className="text-gray-500 text-[10px] block">{t("header.flux")}</span>
                 <span className={`font-bold flex items-center gap-1 ${state.isOnline ? "text-reverb-cyan" : "text-reverb-pink"}`}>
@@ -276,35 +276,37 @@ export default function App() {
               </div>
             </div>
 
-            {/* Hi-contrast toggle */}
-            <button
-              onClick={() => { setHiContrast(!hiContrast); play("click"); }}
-              className="hidden sm:flex items-center gap-1 text-[9px] font-mono font-bold border border-gray-700 hover:border-reverb-cyan/50 px-2 py-1 rounded text-gray-400 hover:text-reverb-cyan transition"
-              title={hiContrast ? t("contrast.off") : t("contrast.on")}
-            >
-              <Sun className="w-3 h-3" />
-              {hiContrast ? t("contrast.off") : t("contrast.on")}
-            </button>
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {/* Hi-contrast toggle */}
+              <button
+                onClick={() => { setHiContrast(!hiContrast); play("click"); }}
+                className="hidden sm:flex items-center gap-1 text-[9px] font-mono font-bold border border-gray-700 hover:border-reverb-cyan/50 px-2 py-1 rounded text-gray-400 hover:text-reverb-cyan transition"
+                title={hiContrast ? t("contrast.off") : t("contrast.on")}
+              >
+                <Sun className="w-3 h-3" />
+                {hiContrast ? t("contrast.off") : t("contrast.on")}
+              </button>
 
-            {/* Share button */}
-            <button
-              onClick={handleShare}
-              className="flex items-center gap-1 text-[9px] font-mono font-bold border border-gray-700 hover:border-reverb-pink/50 px-2 py-1 rounded text-gray-400 hover:text-reverb-pink transition relative"
-              title={t("share.title")}
-            >
-              <Share2 className="w-3 h-3" />
-              <span className="hidden sm:inline">{shareCopied ? t("share.copied") : "SHARE"}</span>
-            </button>
+              {/* Share button */}
+              <button
+                onClick={handleShare}
+                className="flex items-center gap-1 text-[9px] font-mono font-bold border border-gray-700 hover:border-reverb-pink/50 px-2 py-1 rounded text-gray-400 hover:text-reverb-pink transition relative"
+                title={t("share.title")}
+              >
+                <Share2 className="w-3 h-3" />
+                <span className="hidden sm:inline">{shareCopied ? t("share.copied") : "SHARE"}</span>
+              </button>
 
-            {/* Language switcher */}
-            <button
-              onClick={cycleLang}
-              className="flex items-center gap-1 text-[9px] font-mono font-bold border border-gray-700 hover:border-reverb-cyan/50 px-2 py-1 rounded text-gray-400 hover:text-reverb-cyan transition"
-              title="Switch language"
-            >
-              <Globe className="w-3 h-3" />
-              {LANG_LABELS[lang]} → {NEXT_LANG[lang]}
-            </button>
+              {/* Language switcher */}
+              <button
+                onClick={cycleLang}
+                className="flex items-center gap-1 text-[9px] font-mono font-bold border border-gray-700 hover:border-reverb-cyan/50 px-2 py-1 rounded text-gray-400 hover:text-reverb-cyan transition"
+                title="Switch language"
+              >
+                <Globe className="w-3 h-3" />
+                {LANG_LABELS[lang]} → {NEXT_LANG[lang]}
+              </button>
+            </div>
           </div>
         </div>
       </header>
