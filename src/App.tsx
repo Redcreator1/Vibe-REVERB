@@ -9,6 +9,7 @@ import OfflineBroker from "./components/OfflineBroker";
 import SecureInbox from "./components/SecureInbox";
 import SandboxRP from "./components/SandboxRP";
 import OperatorChat from "./components/OperatorChat";
+import SplashScreen, { isFirstVisit } from "./components/SplashScreen";
 import { motion, AnimatePresence } from "motion/react";
 import {
   TrendingUp, Mail, Cpu, Tv, Award, Clock, Flame, Server, Globe, Sun
@@ -53,6 +54,7 @@ export default function App() {
   }, [JSON.stringify(persisted)]);
 
   const [activeTab, setActiveTab] = useState<"telemetry" | "empire" | "inbox" | "sandbox">("sandbox");
+  const [showSplash, setShowSplash] = useState(() => isFirstVisit());
 
   // High contrast mode
   const [hiContrast, setHiContrast] = usePersistedState<boolean>("reverb-contrast", false);
@@ -198,6 +200,8 @@ export default function App() {
   const NEXT_LANG: Record<Lang, string> = { fr: "EN", en: "ES", es: "FR" };
 
   return (
+    <>
+    {showSplash && <SplashScreen onEnter={() => setShowSplash(false)} />}
     <div className="min-h-screen bg-reverb-dark text-white font-sans crt-grid flex flex-col justify-between">
       {/* Header */}
       <header className="bg-reverb-card border-b border-reverb-pink/30 px-4 py-3 sticky top-0 z-50 shadow-glow-pink">
@@ -532,5 +536,6 @@ export default function App() {
         </div>
       </footer>
     </div>
+    </>
   );
 }
