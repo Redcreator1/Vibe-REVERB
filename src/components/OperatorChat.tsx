@@ -35,6 +35,9 @@ export default function OperatorChat() {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const playRef = useRef(play);
+  useEffect(() => { playRef.current = play; }, [play]);
+
   const connect = useCallback(() => {
     if (!WS_URL) return;
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
@@ -55,7 +58,7 @@ export default function OperatorChat() {
         } else if (data.type === "message" || data.type === "system") {
           setMessages(prev => [...prev.slice(-99), data as ChatMsg]);
           if (data.type === "message" && data.callsign !== MY_CALLSIGN) {
-            play("message");
+            playRef.current("message");
           }
           if (data.count !== undefined) setOnlineCount(data.count);
         }
@@ -68,7 +71,7 @@ export default function OperatorChat() {
     };
 
     ws.onerror = () => ws.close();
-  }, [play]);
+  }, []);
 
   useEffect(() => {
     if (WS_URL) connect();
@@ -119,7 +122,9 @@ export default function OperatorChat() {
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-36 sm:bottom-20 right-4 z-40 w-80 max-w-[calc(100vw-2rem)] bg-reverb-card border border-reverb-cyan/30 rounded-lg shadow-glow-cyan flex flex-col overflow-hidden">
+        <div className="fixed bottom-36 sm:bottom-20 right-4 z-40 w-80 max-w-[calc(100vw-2rem)] bg-reverb-card border border-reverb-cyan/30 rounded-lg shadow-glow-cyan flex flex-col overflow-hidden"
+          style={{ maxHeight: "min(420px, calc(100dvh - 120px))" }}
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-reverb-cyan/20 bg-reverb-dark/60">
             <div className="flex items-center gap-2 font-mono text-xs">
@@ -181,9 +186,14 @@ export default function OperatorChat() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKey}
+              onFocus={e => setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300)}
               placeholder={t("chat.placeholder")}
               disabled={connState !== "connected" || !WS_URL}
               maxLength={200}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              inputMode="text"
               className="flex-1 bg-reverb-dark border border-gray-800 focus:border-reverb-cyan/50 rounded px-2.5 py-1.5 text-white font-mono text-[11px] outline-none placeholder:text-gray-600 disabled:opacity-40"
             />
             <button
