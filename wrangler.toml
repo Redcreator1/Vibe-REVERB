@@ -10,6 +10,15 @@ compatibility_flags = ["nodejs_compat"]
 name = "REVERB_CHAT"
 class_name = "ReverbChat"
 
+# Durable Object pour la guerre de territoires (Sandbox multijoueur)
+[[durable_objects.bindings]]
+name = "REVERB_TERRITORIES"
+class_name = "ReverbTerritories"
+
 [[migrations]]
 tag = "v1"
 new_classes = ["ReverbChat"]
+
+[[migrations]]
+tag = "v2"
+new_classes = ["ReverbTerritories"]
