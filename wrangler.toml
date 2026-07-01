@@ -8,7 +8,7 @@ compatibility_flags = ["nodejs_compat"]
 # Durable Object pour le chat temps réel multi-opérateurs
 [[durable_objects.bindings]]
 name = "REVERB_CHAT"
-class_name = "ReverbChat"
+class_name = "ReverbChatSQL"
 
 # Durable Object pour la guerre de territoires (Sandbox multijoueur)
 [[durable_objects.bindings]]
@@ -22,3 +22,8 @@ new_classes = ["ReverbChat"]
 [[migrations]]
 tag = "v3"
 new_sqlite_classes = ["ReverbTerritories"]
+
+[[migrations]]
+tag = "v4"
+deleted_classes = ["ReverbChat"]
+new_sqlite_classes = ["ReverbChatSQL"]
