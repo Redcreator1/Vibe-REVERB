@@ -42,7 +42,7 @@ interface ChatEntry {
   time: string;
 }
 
-export class ReverbChat {
+export class ReverbChatSQL {
   private sessions: Map<WebSocket, { callsign: string }> = new Map();
   private history: ChatEntry[] = [];
 
