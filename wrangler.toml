@@ -4,3 +4,12 @@ compatibility_date = "2025-06-28"
 compatibility_flags = ["nodejs_compat"]
 
 # GEMINI_API_KEY doit être ajouté via : wrangler secret put GEMINI_API_KEY
+
+# Durable Object pour le chat temps réel multi-opérateurs
+[[durable_objects.bindings]]
+name = "REVERB_CHAT"
+class_name = "ReverbChat"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ReverbChat"]
