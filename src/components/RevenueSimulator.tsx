@@ -94,7 +94,7 @@ export default function RevenueSimulator({ empire }: Props) {
           </div>
         ))}
         {activeEnterprises.length === 0 && (
-          <p className="text-center text-gray-600 text-[10px] py-2">Aucune entreprise active</p>
+          <p className="text-center text-gray-600 text-[10px] py-2">{t("revenue.noEnterprises")}</p>
         )}
       </div>
     </div>
