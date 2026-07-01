@@ -1,4 +1,5 @@
 const STORAGE_KEY = "reverb-callsign";
+const REGISTERED_KEY = "reverb-registered";
 
 const PREFIXES = ["GHOST", "NEON", "VIPER", "BLAZE", "NOVA", "ROGUE", "CIPHER", "PIXEL"];
 
@@ -15,4 +16,19 @@ export function getPlayerCallsign(): string {
   const fresh = generateCallsign();
   localStorage.setItem(STORAGE_KEY, fresh);
   return fresh;
+}
+
+/** Overwrite the local callsign, e.g. after registering or restoring an account. */
+export function setPlayerCallsign(callsign: string): void {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(STORAGE_KEY, callsign);
+}
+
+export function isRegistered(): boolean {
+  return typeof localStorage !== "undefined" && localStorage.getItem(REGISTERED_KEY) === "1";
+}
+
+export function markRegistered(): void {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(REGISTERED_KEY, "1");
 }

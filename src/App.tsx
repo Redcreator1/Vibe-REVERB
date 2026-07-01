@@ -13,6 +13,7 @@ import SplashScreen, { isFirstVisit } from "./components/SplashScreen";
 import OnboardingTutorial, { isOnboardingDone } from "./components/OnboardingTutorial";
 import RevenueSimulator from "./components/RevenueSimulator";
 import TerritoryMap from "./components/TerritoryMap";
+import AccountPanel from "./components/AccountPanel";
 import { motion, AnimatePresence } from "motion/react";
 import {
   TrendingUp, Mail, Cpu, Tv, Award, Clock, Flame, Server, Globe, Sun, Share2
@@ -277,6 +278,9 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {/* Account / profile */}
+              <AccountPanel />
+
               {/* Hi-contrast toggle */}
               <button
                 onClick={() => { setHiContrast(!hiContrast); play("click"); }}

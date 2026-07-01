@@ -15,6 +15,11 @@ class_name = "ReverbChatSQL"
 name = "REVERB_TERRITORIES"
 class_name = "ReverbTerritories"
 
+# Durable Object pour les comptes joueurs (callsign + code de récupération)
+[[durable_objects.bindings]]
+name = "REVERB_ACCOUNTS"
+class_name = "ReverbAccounts"
+
 [[migrations]]
 tag = "v1"
 new_classes = ["ReverbChat"]
@@ -27,3 +32,7 @@ new_sqlite_classes = ["ReverbTerritories"]
 tag = "v4"
 deleted_classes = ["ReverbChat"]
 new_sqlite_classes = ["ReverbChatSQL"]
+
+[[migrations]]
+tag = "v5"
+new_sqlite_classes = ["ReverbAccounts"]
