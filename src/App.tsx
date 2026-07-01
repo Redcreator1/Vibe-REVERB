@@ -12,6 +12,7 @@ import OperatorChat from "./components/OperatorChat";
 import SplashScreen, { isFirstVisit } from "./components/SplashScreen";
 import OnboardingTutorial, { isOnboardingDone } from "./components/OnboardingTutorial";
 import RevenueSimulator from "./components/RevenueSimulator";
+import TerritoryMap from "./components/TerritoryMap";
 import { motion, AnimatePresence } from "motion/react";
 import {
   TrendingUp, Mail, Cpu, Tv, Award, Clock, Flame, Server, Globe, Sun, Share2
@@ -397,13 +398,16 @@ export default function App() {
               />
             )}
             {activeTab === "sandbox" && (
-              <SandboxRP
-                gameState={state}
-                onUpdateEmpire={updateEmpire}
-                onUpdateTelemetry={updateTelemetry}
-                onAddContract={addContract}
-                onAddChatMessage={addChatMessage}
-              />
+              <div className="space-y-4">
+                <SandboxRP
+                  gameState={state}
+                  onUpdateEmpire={updateEmpire}
+                  onUpdateTelemetry={updateTelemetry}
+                  onAddContract={addContract}
+                  onAddChatMessage={addChatMessage}
+                />
+                <TerritoryMap />
+              </div>
             )}
           </motion.div>
         </AnimatePresence>

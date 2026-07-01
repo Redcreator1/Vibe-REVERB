@@ -61,6 +61,9 @@ const T = {
     "onboarding.3.desc": "Recevez les messages chiffrés de vos contacts et répondez aux actions urgentes.",
     "onboarding.4.title": "SANDBOX VICE CITY",
     "onboarding.4.desc": "Créez votre serveur RP, personnalisez les règles et lancez des missions depuis le terrain.",
+    "territories.title": "GUERRE DE TERRITOIRES",
+    "territories.attack": "Attaquer",
+    "territories.yours": "À VOUS",
   },
   en: {
     "app.title": "REVERB SYSTEM",
@@ -120,6 +123,9 @@ const T = {
     "onboarding.3.desc": "Receive encrypted messages from your contacts and respond to urgent actions.",
     "onboarding.4.title": "VICE CITY SANDBOX",
     "onboarding.4.desc": "Create your RP server, customize rules and launch field missions.",
+    "territories.title": "TERRITORY WAR",
+    "territories.attack": "Attack",
+    "territories.yours": "YOURS",
   },
   es: {
     "app.title": "SISTEMA REVERB",
@@ -179,6 +185,9 @@ const T = {
     "onboarding.3.desc": "Recibe mensajes cifrados de tus contactos y responde a acciones urgentes.",
     "onboarding.4.title": "SANDBOX VICE CITY",
     "onboarding.4.desc": "Crea tu servidor RP, personaliza reglas y lanza misiones desde el campo.",
+    "territories.title": "GUERRA DE TERRITORIOS",
+    "territories.attack": "Atacar",
+    "territories.yours": "TUYO",
   },
 } as const satisfies Record<Lang, Record<string, string>>;
 

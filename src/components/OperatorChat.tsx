@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback, KeyboardEvent } from "react";
 import { MessageSquare, X, Send, Wifi, WifiOff, Users } from "lucide-react";
 import { useI18n } from "../i18n";
 import { useSoundSystem } from "../hooks/useSound";
+import { getPlayerCallsign } from "../hooks/usePlayerIdentity";
 
 interface ChatMsg {
   type: "message" | "system";
@@ -11,14 +12,7 @@ interface ChatMsg {
   time: string;
 }
 
-// Random cyberpunk callsign per session
-function genCallsign(): string {
-  const prefixes = ["GHOST", "NEON", "VIPER", "BLAZE", "NOVA", "ROGUE", "CIPHER", "PIXEL"];
-  const suffix = Math.floor(Math.random() * 900 + 100);
-  return `${prefixes[Math.floor(Math.random() * prefixes.length)]}_${suffix}`;
-}
-
-const MY_CALLSIGN = genCallsign();
+const MY_CALLSIGN = getPlayerCallsign();
 const WS_URL = import.meta.env.VITE_WS_URL as string | undefined;
 
 type ConnState = "disconnected" | "connecting" | "connected";
