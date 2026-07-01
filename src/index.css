@@ -41,6 +41,30 @@
   opacity: 0.75;
 }
 
+/* High contrast mode */
+.high-contrast {
+  --color-reverb-dark: #000000;
+  --color-reverb-card: #0a0a12;
+  --color-reverb-pink: #ff4d8d;
+  --color-reverb-cyan: #00ffff;
+}
+.high-contrast .crt-grid::before {
+  opacity: 0.35;
+}
+.high-contrast body,
+.high-contrast * {
+  --tw-text-opacity: 1;
+}
+/* Boost text legibility in high-contrast mode */
+.high-contrast p,
+.high-contrast span,
+.high-contrast label {
+  color: inherit;
+}
+.high-contrast .text-gray-400 { color: #c0c0c0 !important; }
+.high-contrast .text-gray-500 { color: #a0a0a0 !important; }
+.high-contrast .text-gray-600 { color: #909090 !important; }
+
 /* Custom scrollbars for dashboard panels */
 ::-webkit-scrollbar {
   width: 6px;
