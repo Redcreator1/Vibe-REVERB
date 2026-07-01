@@ -10,9 +10,11 @@ import SecureInbox from "./components/SecureInbox";
 import SandboxRP from "./components/SandboxRP";
 import OperatorChat from "./components/OperatorChat";
 import SplashScreen, { isFirstVisit } from "./components/SplashScreen";
+import OnboardingTutorial, { isOnboardingDone } from "./components/OnboardingTutorial";
+import RevenueSimulator from "./components/RevenueSimulator";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  TrendingUp, Mail, Cpu, Tv, Award, Clock, Flame, Server, Globe, Sun
+  TrendingUp, Mail, Cpu, Tv, Award, Clock, Flame, Server, Globe, Sun, Share2
 } from "lucide-react";
 import { Lang } from "./i18n";
 
@@ -55,6 +57,9 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<"telemetry" | "empire" | "inbox" | "sandbox">("sandbox");
   const [showSplash, setShowSplash] = useState(() => isFirstVisit());
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   // High contrast mode
   const [hiContrast, setHiContrast] = usePersistedState<boolean>("reverb-contrast", false);
@@ -72,6 +77,24 @@ export default function App() {
     if (tab === activeTab) return;
     setActiveTab(tab);
     play("nav");
+  };
+
+  const handleSplashDone = () => {
+    setShowSplash(false);
+    if (!isOnboardingDone()) setTimeout(() => setShowOnboarding(true), 400);
+  };
+
+  const handleShare = async () => {
+    const total = state.empire.cashClean + state.empire.cashDirty;
+    const text = `${t("share.text")}\n💰 Empire : $${total.toLocaleString()}\n🏢 ${state.empire.enterprises.filter(e => e.status === "active").length} entreprises actives\n🔗 vibe-reverb.pages.dev`;
+    if (navigator.share) {
+      await navigator.share({ title: "SYSTÈME REVERB", text, url: "https://vibe-reverb.pages.dev" }).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(text);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    }
+    play("click");
   };
 
   const cycleLang = () => {
@@ -201,7 +224,8 @@ export default function App() {
 
   return (
     <>
-    {showSplash && <SplashScreen onEnter={() => setShowSplash(false)} />}
+    {showSplash && <SplashScreen onEnter={handleSplashDone} />}
+    {showOnboarding && <OnboardingTutorial onDone={() => setShowOnboarding(false)} />}
     <div className="min-h-screen bg-reverb-dark text-white font-sans crt-grid flex flex-col justify-between">
       {/* Header */}
       <header className="bg-reverb-card border-b border-reverb-pink/30 px-4 py-3 sticky top-0 z-50 shadow-glow-pink">
@@ -259,6 +283,16 @@ export default function App() {
             >
               <Sun className="w-3 h-3" />
               {hiContrast ? t("contrast.off") : t("contrast.on")}
+            </button>
+
+            {/* Share button */}
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1 text-[9px] font-mono font-bold border border-gray-700 hover:border-reverb-pink/50 px-2 py-1 rounded text-gray-400 hover:text-reverb-pink transition relative"
+              title={t("share.title")}
+            >
+              <Share2 className="w-3 h-3" />
+              <span className="hidden sm:inline">{shareCopied ? t("share.copied") : "SHARE"}</span>
             </button>
 
             {/* Language switcher */}
@@ -345,11 +379,14 @@ export default function App() {
               />
             )}
             {activeTab === "empire" && (
-              <OfflineBroker
-                gameState={state}
-                onUpdateEmpire={updateEmpire}
-                onAddMessage={addInboxMessage}
-              />
+              <div className="space-y-4">
+                <OfflineBroker
+                  gameState={state}
+                  onUpdateEmpire={updateEmpire}
+                  onAddMessage={addInboxMessage}
+                />
+                <RevenueSimulator empire={state.empire} />
+              </div>
             )}
             {activeTab === "inbox" && (
               <SecureInbox
