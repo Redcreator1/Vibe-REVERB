@@ -20,5 +20,5 @@ tag = "v1"
 new_classes = ["ReverbChat"]
 
 [[migrations]]
-tag = "v2"
+tag = "v3"
 new_sqlite_classes = ["ReverbTerritories"]
