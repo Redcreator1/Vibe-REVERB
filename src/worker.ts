@@ -5,8 +5,13 @@
  */
 
 // Minimal type stubs for Cloudflare Workers globals (not in standard DOM lib)
+interface SqlCursor<T> { toArray(): T[]; one(): T }
 declare class DurableObjectState {
-  storage: { get<T = unknown>(key: string): Promise<T | undefined>; put(key: string, value: unknown): Promise<void> };
+  storage: {
+    get<T = unknown>(key: string): Promise<T | undefined>;
+    put(key: string, value: unknown): Promise<void>;
+    sql: { exec<T = unknown>(query: string, ...bindings: unknown[]): SqlCursor<T> };
+  };
 }
 declare class DurableObjectStub { fetch(r: Request): Promise<Response> }
 declare class DurableObjectNamespace { idFromName(n: string): object; get(id: object): DurableObjectStub }
@@ -15,6 +20,7 @@ declare class WebSocketPair { 0: WebSocket; 1: WebSocket }
 interface Env {
   REVERB_CHAT: DurableObjectNamespace;
   REVERB_TERRITORIES: DurableObjectNamespace;
+  REVERB_ACCOUNTS: DurableObjectNamespace;
 }
 
 function corsHeaders(): HeadersInit {
@@ -255,6 +261,91 @@ export class ReverbTerritories {
 }
 
 // ──────────────────────────────────────────────────────────────
+// Durable Object — Comptes joueurs (callsign + code de récupération)
+// Pas de mot de passe, pas d'email : identité légère, zéro donnée sensible.
+// ──────────────────────────────────────────────────────────────
+const CALLSIGN_RE = /^[A-Za-z0-9_]{3,20}$/;
+const RECOVERY_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // sans caractères ambigus (0/O, 1/I/L)
+
+function generateRecoveryCode(): string {
+  let code = "";
+  for (let i = 0; i < 10; i++) {
+    if (i > 0 && i % 5 === 0) code += "-";
+    code += RECOVERY_ALPHABET[Math.floor(Math.random() * RECOVERY_ALPHABET.length)];
+  }
+  return code;
+}
+
+export class ReverbAccounts {
+  private sql: DurableObjectState["storage"]["sql"];
+  private attempts: Map<string, number[]> = new Map(); // IP-ish key -> timestamps, basic rate limit
+
+  constructor(private state: DurableObjectState) {
+    this.sql = this.state.storage.sql;
+    this.sql.exec(`
+      CREATE TABLE IF NOT EXISTS accounts (
+        recovery_code TEXT PRIMARY KEY,
+        callsign TEXT UNIQUE NOT NULL,
+        created_at INTEGER NOT NULL
+      )
+    `);
+  }
+
+  private rateLimited(key: string, max: number, windowMs: number): boolean {
+    const now = Date.now();
+    const hits = (this.attempts.get(key) ?? []).filter(t => now - t < windowMs);
+    if (hits.length >= max) return true;
+    hits.push(now);
+    this.attempts.set(key, hits);
+    return false;
+  }
+
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+    const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+
+    if (url.pathname.endsWith("/register") && request.method === "POST") {
+      if (this.rateLimited(`register:${ip}`, 10, 60_000)) {
+        return json({ error: "Trop de tentatives, réessayez dans une minute." }, 429);
+      }
+      const body = await request.json().catch(() => null) as { callsign?: string } | null;
+      const callsign = body?.callsign?.trim();
+      if (!callsign || !CALLSIGN_RE.test(callsign)) {
+        return json({ error: "Callsign invalide (3-20 caractères alphanumériques)." }, 400);
+      }
+      const existing = this.sql.exec<{ callsign: string }>(
+        "SELECT callsign FROM accounts WHERE callsign = ?", callsign
+      ).toArray();
+      if (existing.length > 0) {
+        return json({ error: "Ce callsign est déjà pris." }, 409);
+      }
+      const recoveryCode = generateRecoveryCode();
+      this.sql.exec(
+        "INSERT INTO accounts (recovery_code, callsign, created_at) VALUES (?, ?, ?)",
+        recoveryCode, callsign, Date.now()
+      );
+      return json({ callsign, recoveryCode });
+    }
+
+    if (url.pathname.endsWith("/recover") && request.method === "POST") {
+      if (this.rateLimited(`recover:${ip}`, 8, 60_000)) {
+        return json({ error: "Trop de tentatives, réessayez dans une minute." }, 429);
+      }
+      const body = await request.json().catch(() => null) as { recoveryCode?: string } | null;
+      const code = body?.recoveryCode?.trim().toUpperCase();
+      if (!code) return json({ error: "Code de récupération requis." }, 400);
+      const rows = this.sql.exec<{ callsign: string }>(
+        "SELECT callsign FROM accounts WHERE recovery_code = ?", code
+      ).toArray();
+      if (rows.length === 0) return json({ error: "Code de récupération introuvable." }, 404);
+      return json({ callsign: rows[0].callsign });
+    }
+
+    return json({ error: "Route inconnue" }, 404);
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
 // Main Worker
 // ──────────────────────────────────────────────────────────────
 export default {
@@ -267,7 +358,7 @@ export default {
 
     // Health check
     if (url.pathname === "/" || url.pathname === "") {
-      return json({ status: "REVERB CORE ONLINE", version: "3.1", chat: "durable-object-ready", territories: "durable-object-ready" });
+      return json({ status: "REVERB CORE ONLINE", version: "3.2", chat: "durable-object-ready", territories: "durable-object-ready", accounts: "durable-object-ready" });
     }
 
     // WebSocket — chat opérateurs REVERB
@@ -281,6 +372,13 @@ export default {
     if (url.pathname === "/api/territories/ws") {
       const id = env.REVERB_TERRITORIES.idFromName("global");
       const stub = env.REVERB_TERRITORIES.get(id);
+      return stub.fetch(request);
+    }
+
+    // Comptes joueurs — inscription / récupération de callsign
+    if (url.pathname === "/api/accounts/register" || url.pathname === "/api/accounts/recover") {
+      const id = env.REVERB_ACCOUNTS.idFromName("global");
+      const stub = env.REVERB_ACCOUNTS.get(id);
       return stub.fetch(request);
     }
 
