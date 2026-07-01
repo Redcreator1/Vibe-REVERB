@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AetherSwarm v1 — OS d'Agents IA Local</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        indigo: { 500: '#6366f1', 600: '#4f46e5', 400: '#818cf8' },
+        slate: { 900: '#0f172a', 800: '#1e293b', 700: '#334155', 600: '#475569', 400: '#94a3b8', 200: '#e2e8f0', 100: '#f1f5f9' }
+      },
+      fontFamily: { mono: ['JetBrains Mono', 'monospace'] }
+    }
+  }
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Inter', sans-serif; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+  @keyframes blink { 0%,100% { opacity:.2; } 50% { opacity:1; } }
+  @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+  .fade-up { animation: fadeUp .6s ease both; }
+  .delay-1 { animation-delay:.1s; }
+  .delay-2 { animation-delay:.2s; }
+  .delay-3 { animation-delay:.3s; }
+  .delay-4 { animation-delay:.4s; }
+  .pulse-dot { animation: blink 1.8s infinite; }
+  .float { animation: float 4s ease-in-out infinite; }
+  .gradient-text { background: linear-gradient(135deg, #818cf8, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .hero-bg { background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,.25), transparent 65%), radial-gradient(ellipse 60% 40% at 80% 80%, rgba(14,165,233,.12), transparent 55%), #070a12; }
+  .card-glow:hover { box-shadow: 0 0 0 1px rgba(99,102,241,.4), 0 8px 32px rgba(99,102,241,.12); }
+  .btn-buy { background: linear-gradient(135deg, #6366f1, #4f46e5); transition: all .2s; }
+  .btn-buy:hover { opacity: .9; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(99,102,241,.35); }
+  details summary { cursor: pointer; list-style: none; }
+  details summary::-webkit-details-marker { display: none; }
+  details[open] .chevron { transform: rotate(180deg); }
+  .chevron { transition: transform .2s; }
+  .terminal { background: #0d1117; border: 1px solid #21262d; border-radius: 12px; overflow: hidden; }
+  .terminal-bar { background: #161b22; padding: 10px 14px; display: flex; gap: 7px; align-items: center; }
+  .term-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .agent-line { opacity: 0; animation: fadeUp .4s ease both; }
+</style>
+</head>
+<body class="hero-bg min-h-screen text-slate-100" id="body">
+
+<!-- DARK/LIGHT TOGGLE -->
+<script>
+  if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+    document.getElementById('body').style.background = '#f8fafc';
+    document.getElementById('body').style.color = '#0f172a';
+  }
+</script>
+
+<!-- NAV -->
+<nav class="sticky top-0 z-50 border-b border-white/5 backdrop-blur-xl bg-black/30 px-6 py-3 flex items-center justify-between">
+  <div class="flex items-center gap-2">
+    <div class="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-sm">⚡</div>
+    <span class="font-bold text-sm tracking-tight">AetherSwarm</span>
+    <span class="text-xs text-slate-500 font-mono ml-1">v1</span>
+  </div>
+  <div class="flex items-center gap-3">
+    <span class="hidden sm:flex items-center gap-1.5 text-xs text-emerald-400 border border-emerald-500/25 bg-emerald-500/8 rounded-full px-3 py-1">
+      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span>
+      100% local
+    </span>
+    <a data-gumroad-action="buy" class="btn-buy text-white text-sm font-semibold px-4 py-2 rounded-lg cursor-pointer select-none">
+      Acheter — <span data-gumroad-field="price">39€</span>
+    </a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="max-w-5xl mx-auto px-6 pt-20 pb-16 text-center fade-up">
+  <!-- BADGE -->
+  <div class="inline-flex items-center gap-2 text-xs font-semibold text-indigo-300 border border-indigo-500/25 bg-indigo-500/8 rounded-full px-4 py-1.5 mb-8">
+    <span>🚀</span> Pipeline 6 agents · One-time 39€ · Zéro abonnement
+  </div>
+
+  <!-- TITLE -->
+  <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight leading-tight mb-6 fade-up delay-1">
+    Ton OS d'agents IA<br>
+    <span class="gradient-text">qui tourne en local</span>
+  </h1>
+
+  <p class="text-lg text-slate-400 max-w-2xl mx-auto mb-10 fade-up delay-2">
+    6 agents spécialisés collaborent sur ta machine — Researcher, Strategist, Coder, Executor, Critic, Synthesizer. Zéro SaaS, zéro abonnement, zéro fuite de données.
+  </p>
+
+  <!-- CTA BUTTONS -->
+  <div class="flex flex-col sm:flex-row gap-4 justify-center mb-14 fade-up delay-3">
+    <a data-gumroad-action="buy" class="btn-buy text-white font-bold text-lg px-8 py-4 rounded-xl cursor-pointer select-none inline-flex items-center justify-center gap-2">
+      ⚡ Acheter AetherSwarm — <span data-gumroad-field="price">39€</span>
+    </a>
+    <a href="https://aether-swarm.pages.dev/demo" target="_blank" class="border border-white/15 hover:border-indigo-500/40 text-slate-300 font-semibold text-lg px-8 py-4 rounded-xl transition-all inline-flex items-center justify-center gap-2">
+      ▶ Voir la démo live
+    </a>
+  </div>
+
+  <!-- TERMINAL DEMO -->
+  <div class="terminal max-w-2xl mx-auto float fade-up delay-4">
+    <div class="terminal-bar">
+      <div class="term-dot bg-red-500/80"></div>
+      <div class="term-dot bg-yellow-500/80"></div>
+      <div class="term-dot bg-green-500/80"></div>
+      <span class="text-xs text-slate-500 ml-2 font-mono">aether-swarm · 127.0.0.1:8787</span>
+    </div>
+    <div class="p-5 text-left font-mono text-sm text-slate-300 space-y-2" id="terminal-lines">
+      <div class="text-slate-500">$ aether run --mode swarm --brief "Analyse mon marché SaaS"</div>
+      <div class="agent-line text-indigo-400" style="animation-delay:.3s">🔍 <span class="text-white">Researcher</span> → Brief d'enquête structuré…</div>
+      <div class="agent-line text-purple-400" style="animation-delay:.8s">🧠 <span class="text-white">Strategist</span> → Analyse positionnement + options GTM…</div>
+      <div class="agent-line text-cyan-400" style="animation-delay:1.3s">💻 <span class="text-white">Coder</span> → Architecture MVP + interfaces API…</div>
+      <div class="agent-line text-yellow-400" style="animation-delay:1.8s">⚡ <span class="text-white">Executor</span> → Commandes proposées (validation requise)…</div>
+      <div class="agent-line text-orange-400" style="animation-delay:2.3s">🔬 <span class="text-white">Critic</span> → Top 5 corrections + risques identifiés…</div>
+      <div class="agent-line text-emerald-400" style="animation-delay:2.8s">✨ <span class="text-white">Synthesizer</span> → Plan 7 jours actionnable ✓</div>
+      <div class="agent-line text-slate-500 mt-2" style="animation-delay:3.2s">⏱  Terminé en 28s · llama3.2:3b local · 0 token cloud</div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="border-y border-white/5 py-10 fade-up">
+  <div class="max-w-4xl mx-auto px-6 grid grid-cols-2 sm:grid-cols-4 gap-8 text-center">
+    <div><div class="text-3xl font-extrabold gradient-text">6</div><div class="text-sm text-slate-500 mt-1">Agents spécialisés</div></div>
+    <div><div class="text-3xl font-extrabold gradient-text">0€</div><div class="text-sm text-slate-500 mt-1">Abonnement IA</div></div>
+    <div><div class="text-3xl font-extrabold gradient-text">100%</div><div class="text-sm text-slate-500 mt-1">Local & privé</div></div>
+    <div><div class="text-3xl font-extrabold gradient-text">1x</div><div class="text-sm text-slate-500 mt-1">Paiement unique</div></div>
+  </div>
+</section>
+
+<!-- AGENTS -->
+<section class="max-w-5xl mx-auto px-6 py-20">
+  <div class="text-center mb-12">
+    <p class="text-xs text-indigo-400 uppercase tracking-widest font-semibold mb-3">Le pipeline</p>
+    <h2 class="text-3xl font-bold">6 agents. Une mission. Ton PC.</h2>
+  </div>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+    <!-- Agent cards -->
+    <div class="border border-white/8 rounded-2xl p-6 bg-white/2 card-glow transition-all">
+      <div class="text-2xl mb-3">🔍</div>
+      <div class="font-bold text-white mb-1">Researcher</div>
+      <div class="text-sm text-slate-400">Structure l'enquête, identifie les gaps d'information, formule les hypothèses à tester. Ne ment pas sur les données — indique ce qu'il ne sait pas.</div>
+    </div>
+    <div class="border border-white/8 rounded-2xl p-6 bg-white/2 card-glow transition-all">
+      <div class="text-2xl mb-3">🧠</div>
+      <div class="font-bold text-white mb-1">Strategist</div>
+      <div class="text-sm text-slate-400">Analyse positionnement, pricing, GTM et growth loops. Donne une recommandation claire avec plan 7 jours et métriques de succès.</div>
+    </div>
+    <div class="border border-white/8 rounded-2xl p-6 bg-white/2 card-glow transition-all">
+      <div class="text-2xl mb-3">💻</div>
+      <div class="font-bold text-white mb-1">Coder</div>
+      <div class="text-sm text-slate-400">Propose architecture, APIs, data models et code propre. Suit les best practices du stack choisi, avec types et gestion d'erreurs.</div>
+    </div>
+    <div class="border border-white/8 rounded-2xl p-6 bg-white/2 card-glow transition-all">
+      <div class="text-2xl mb-3">⚡</div>
+      <div class="font-bold text-white mb-1">Executor</div>
+      <div class="text-sm text-slate-400">Propose des commandes shell sûres et minimales. Ne s'exécute qu'avec ta validation explicite. Niveau de risque affiché pour chaque commande.</div>
+    </div>
+    <div class="border border-white/8 rounded-2xl p-6 bg-white/2 card-glow transition-all">
+      <div class="text-2xl mb-3">🔬</div>
+      <div class="font-bold text-white mb-1">Critic</div>
+      <div class="text-sm text-slate-400">Revue indépendante de tous les outputs : contradictions, hypothèses non validées, risques d'exécution. Donne un Top 5 des corrections prioritaires.</div>
+    </div>
+    <div class="border border-white/8 rounded-2xl p-6 bg-white/2 card-glow transition-all">
+      <div class="text-2xl mb-3">✨</div>
+      <div class="font-bold text-white mb-1">Synthesizer</div>
+      <div class="text-sm text-slate-400">Intègre tous les outputs en une recommandation cohérente, actionnable, avec plan 7 jours et métriques. C'est lui qui te livre le livrable final.</div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT'S INCLUDED -->
+<section class="border-t border-white/5 py-20">
+  <div class="max-w-4xl mx-auto px-6">
+    <div class="text-center mb-12">
+      <p class="text-xs text-indigo-400 uppercase tracking-widest font-semibold mb-3">Dans le bundle</p>
+      <h2 class="text-3xl font-bold">Tout ce qu'il faut pour démarrer</h2>
+    </div>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div class="flex items-start gap-3 p-4 border border-white/8 rounded-xl bg-white/2">
+        <span class="text-emerald-400 mt-0.5">✓</span>
+        <div><div class="font-semibold text-sm">Backend FastAPI</div><div class="text-xs text-slate-400 mt-0.5">API Python sur port 8787, LangGraph orchestration, routes health/swarm/memory</div></div>
+      </div>
+      <div class="flex items-start gap-3 p-4 border border-white/8 rounded-xl bg-white/2">
+        <span class="text-emerald-400 mt-0.5">✓</span>
+        <div><div class="font-semibold text-sm">Frontend SvelteKit</div><div class="text-xs text-slate-400 mt-0.5">Console web pré-compilée, prête à servir depuis le backend</div></div>
+      </div>
+      <div class="flex items-start gap-3 p-4 border border-white/8 rounded-xl bg-white/2">
+        <span class="text-emerald-400 mt-0.5">✓</span>
+        <div><div class="font-semibold text-sm">Mémoire ChromaDB</div><div class="text-xs text-slate-400 mt-0.5">Vectorisation locale de tes échanges, persistance entre sessions</div></div>
+      </div>
+      <div class="flex items-start gap-3 p-4 border border-white/8 rounded-xl bg-white/2">
+        <span class="text-emerald-400 mt-0.5">✓</span>
+        <div><div class="font-semibold text-sm">Ollama + Claude API</div><div class="text-xs text-slate-400 mt-0.5">llama3.2:3b par défaut (gratuit), basculable sur Claude API avec ta clé</div></div>
+      </div>
+      <div class="flex items-start gap-3 p-4 border border-white/8 rounded-xl bg-white/2">
+        <span class="text-emerald-400 mt-0.5">✓</span>
+        <div><div class="font-semibold text-sm">10 missions exemples</div><div class="text-xs text-slate-400 mt-0.5">Audit repo, plan contenu, analyse marché, brief produit, audit sécurité…</div></div>
+      </div>
+      <div class="flex items-start gap-3 p-4 border border-white/8 rounded-xl bg-white/2">
+        <span class="text-emerald-400 mt-0.5">✓</span>
+        <div><div class="font-semibold text-sm">Guide CUSTOMIZE-AGENTS</div><div class="text-xs text-slate-400 mt-0.5">Modifie les prompts système de chaque agent pour ton use case</div></div>
+      </div>
+      <div class="flex items-start gap-3 p-4 border border-white/8 rounded-xl bg-white/2">
+        <span class="text-emerald-400 mt-0.5">✓</span>
+        <div><div class="font-semibold text-sm">Notebook Colab T4</div><div class="text-xs text-slate-400 mt-0.5">Lance AetherSwarm sur GPU Google gratuitement, exposé via ngrok</div></div>
+      </div>
+      <div class="flex items-start gap-3 p-4 border border-white/8 rounded-xl bg-white/2">
+        <span class="text-emerald-400 mt-0.5">✓</span>
+        <div><div class="font-semibold text-sm">start-aether.bat</div><div class="text-xs text-slate-400 mt-0.5">Script Windows one-click pour démarrer tout le stack en 1 double-clic</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VS SAAS -->
+<section class="py-20 border-t border-white/5">
+  <div class="max-w-3xl mx-auto px-6">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl font-bold mb-3">AetherSwarm vs SaaS IA</h2>
+      <p class="text-slate-400">Pourquoi payer 100€/mois quand tu peux payer une fois ?</p>
+    </div>
+    <div class="overflow-x-auto rounded-2xl border border-white/8">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-white/8 bg-white/3">
+            <th class="text-left px-5 py-4 text-slate-400 font-medium"></th>
+            <th class="px-5 py-4 text-indigo-400 font-bold">AetherSwarm</th>
+            <th class="px-5 py-4 text-slate-500 font-medium">SaaS IA</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-b border-white/5"><td class="px-5 py-3.5 text-slate-300">Prix</td><td class="px-5 py-3.5 text-center font-bold text-white">39€ · une fois</td><td class="px-5 py-3.5 text-center text-slate-500">50–200€/mois</td></tr>
+          <tr class="border-b border-white/5 bg-white/1"><td class="px-5 py-3.5 text-slate-300">Données</td><td class="px-5 py-3.5 text-center text-emerald-400">✓ 100% local</td><td class="px-5 py-3.5 text-center text-slate-500">Envoyées au cloud</td></tr>
+          <tr class="border-b border-white/5"><td class="px-5 py-3.5 text-slate-300">Personnalisation</td><td class="px-5 py-3.5 text-center text-emerald-400">✓ Prompts éditables</td><td class="px-5 py-3.5 text-center text-slate-500">Verrouillé</td></tr>
+          <tr class="border-b border-white/5 bg-white/1"><td class="px-5 py-3.5 text-slate-300">Modèle LLM</td><td class="px-5 py-3.5 text-center text-emerald-400">✓ Ton choix</td><td class="px-5 py-3.5 text-center text-slate-500">Imposé</td></tr>
+          <tr class="border-b border-white/5"><td class="px-5 py-3.5 text-slate-300">Internet requis</td><td class="px-5 py-3.5 text-center text-emerald-400">✓ Non</td><td class="px-5 py-3.5 text-center text-slate-500">Oui</td></tr>
+          <tr><td class="px-5 py-3.5 text-slate-300">Code source</td><td class="px-5 py-3.5 text-center text-emerald-400">✓ Inclus</td><td class="px-5 py-3.5 text-center text-slate-500">Boîte noire</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="py-20 border-t border-white/5" id="buy">
+  <div class="max-w-md mx-auto px-6 text-center">
+    <p class="text-xs text-indigo-400 uppercase tracking-widest font-semibold mb-4">Tarif</p>
+    <div class="border border-indigo-500/30 rounded-3xl p-8 bg-indigo-500/5 relative overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/8 to-transparent pointer-events-none"></div>
+      <div class="relative">
+        <div class="text-slate-400 line-through text-lg mb-1">59€</div>
+        <div class="text-5xl font-extrabold text-white mb-2">39€</div>
+        <div class="text-sm text-indigo-300 mb-6">Prix early · 50 premières licences</div>
+        <ul class="text-left space-y-2 text-sm text-slate-300 mb-8">
+          <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Backend FastAPI + Frontend SvelteKit</li>
+          <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> 6 agents LangGraph configurables</li>
+          <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Mémoire ChromaDB locale</li>
+          <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> 10 missions + guide CUSTOMIZE-AGENTS</li>
+          <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Notebook Colab T4 inclus</li>
+          <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Mises à jour futures</li>
+          <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> License key Gumroad</li>
+        </ul>
+        <a data-gumroad-action="buy" class="btn-buy text-white font-bold text-lg px-8 py-4 rounded-xl cursor-pointer select-none block text-center">
+          ⚡ Acheter maintenant — 39€
+        </a>
+        <p class="text-xs text-slate-500 mt-4">Paiement sécurisé par Gumroad · Téléchargement immédiat</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="py-16 border-t border-white/5">
+  <div class="max-w-2xl mx-auto px-6">
+    <h2 class="text-2xl font-bold text-center mb-10">Questions fréquentes</h2>
+    <div class="space-y-3" id="faq">
+      <details class="border border-white/8 rounded-xl overflow-hidden group">
+        <summary class="flex items-center justify-between px-5 py-4 text-sm font-semibold hover:bg-white/3 transition-colors">
+          Quel PC faut-il pour faire tourner AetherSwarm ?
+          <svg class="chevron w-4 h-4 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </summary>
+        <div class="px-5 pb-4 text-sm text-slate-400 leading-relaxed">Windows, Mac ou Linux. RAM minimum 8 Go (16 Go recommandé pour llama3.2:3b). Pas de GPU obligatoire — Ollama tourne en CPU. Sur Google Colab T4 (gratuit) c'est encore plus rapide.</div>
+      </details>
+      <details class="border border-white/8 rounded-xl overflow-hidden">
+        <summary class="flex items-center justify-between px-5 py-4 text-sm font-semibold hover:bg-white/3 transition-colors">
+          Est-ce que j'ai besoin d'une clé OpenAI ou Anthropic ?
+          <svg class="chevron w-4 h-4 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </summary>
+        <div class="px-5 pb-4 text-sm text-slate-400 leading-relaxed">Non. AetherSwarm utilise Ollama par défaut (llama3.2:3b, gratuit, local). Si tu as une clé Anthropic Claude, tu peux la brancher pour des outputs plus puissants — mais c'est optionnel.</div>
+      </details>
+      <details class="border border-white/8 rounded-xl overflow-hidden">
+        <summary class="flex items-center justify-between px-5 py-4 text-sm font-semibold hover:bg-white/3 transition-colors">
+          Mes données restent-elles sur ma machine ?
+          <svg class="chevron w-4 h-4 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </summary>
+        <div class="px-5 pb-4 text-sm text-slate-400 leading-relaxed">100%. Le backend tourne sur localhost:8787, les agents utilisent Ollama local, la mémoire est dans ChromaDB sur ton disque. Aucune donnée n'est envoyée à un serveur externe (sauf si tu actives Claude API volontairement).</div>
+      </details>
+      <details class="border border-white/8 rounded-xl overflow-hidden">
+        <summary class="flex items-center justify-between px-5 py-4 text-sm font-semibold hover:bg-white/3 transition-colors">
+          Puis-je modifier les agents ?
+          <svg class="chevron w-4 h-4 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </summary>
+        <div class="px-5 pb-4 text-sm text-slate-400 leading-relaxed">Oui. Chaque agent a son fichier <code class="font-mono text-indigo-300 text-xs">agents/&lt;role&gt;/prompts.py</code>. Tu édites le prompt système, tu redémarres la console — les agents adoptent le nouveau comportement immédiatement.</div>
+      </details>
+      <details class="border border-white/8 rounded-xl overflow-hidden">
+        <summary class="flex items-center justify-between px-5 py-4 text-sm font-semibold hover:bg-white/3 transition-colors">
+          Y a-t-il un support ?
+          <svg class="chevron w-4 h-4 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </summary>
+        <div class="px-5 pb-4 text-sm text-slate-400 leading-relaxed">Support par email : <a href="mailto:mindset22633@gmail.com" class="text-indigo-400 underline">mindset22633@gmail.com</a>. Le guide INSTALL.md et le CUSTOMIZE-AGENTS.md couvrent 95% des questions de démarrage.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER CTA -->
+<section class="py-20 border-t border-white/5 text-center">
+  <div class="max-w-xl mx-auto px-6">
+    <h2 class="text-3xl font-bold mb-4">Prêt à lancer ton swarm ?</h2>
+    <p class="text-slate-400 mb-8">39€ une fois. Tes agents tournent pour toujours.</p>
+    <a data-gumroad-action="buy" class="btn-buy text-white font-bold text-xl px-10 py-5 rounded-2xl cursor-pointer select-none inline-block">
+      ⚡ Acheter AetherSwarm — 39€
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="border-t border-white/5 py-8 text-center text-xs text-slate-600">
+  <p>AetherSwarm v1 · Par <a href="mailto:mindset22633@gmail.com" class="hover:text-slate-400 transition-colors">Adama Fofana</a> · Paiement sécurisé Gumroad</p>
+</footer>
+
+</body>
+</html>
