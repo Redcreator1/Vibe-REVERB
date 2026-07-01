@@ -193,7 +193,7 @@ export default function TerritoryMap() {
           ))}
         </AnimatePresence>
         {events.length === 0 && (
-          <p className="text-center text-gray-600 text-[10px]">— aucune bataille récente —</p>
+          <p className="text-center text-gray-600 text-[10px]">{t("territories.noEvents")}</p>
         )}
       </div>
     </div>

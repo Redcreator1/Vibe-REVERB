@@ -64,6 +64,8 @@ const T = {
     "territories.title": "GUERRE DE TERRITOIRES",
     "territories.attack": "Attaquer",
     "territories.yours": "À VOUS",
+    "territories.noEvents": "— aucune bataille récente —",
+    "revenue.noEnterprises": "Aucune entreprise active",
   },
   en: {
     "app.title": "REVERB SYSTEM",
@@ -126,6 +128,8 @@ const T = {
     "territories.title": "TERRITORY WAR",
     "territories.attack": "Attack",
     "territories.yours": "YOURS",
+    "territories.noEvents": "— no recent battles —",
+    "revenue.noEnterprises": "No active enterprises",
   },
   es: {
     "app.title": "SISTEMA REVERB",
@@ -188,6 +192,8 @@ const T = {
     "territories.title": "GUERRA DE TERRITORIOS",
     "territories.attack": "Atacar",
     "territories.yours": "TUYO",
+    "territories.noEvents": "— sin batallas recientes —",
+    "revenue.noEnterprises": "Sin empresas activas",
   },
 } as const satisfies Record<Lang, Record<string, string>>;
 
