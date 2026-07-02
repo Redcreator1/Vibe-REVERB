@@ -2,24 +2,26 @@
 
 ## Architecture
 
-- **Backend (Cloudflare Worker)** → `https://reverb01.mindsetredcom.workers.dev`
-- **Frontend (Cloudflare Pages)** → à configurer (voir ci-dessous)
+- **Backend (Cloudflare Worker)** → `https://vibe-reverb-api.mindsetredcom.workers.dev`
+  (nom du Worker fixé par `name` dans `wrangler.toml` — ne pas le renommer,
+  ça créerait un Worker séparé au lieu de mettre à jour celui-ci)
+- **Frontend (Cloudflare Pages)** → `https://vibe-reverb.pages.dev`
+
+Aucune intégration IA payante — le Worker héberge uniquement les Durable
+Objects pour le chat temps réel (`ReverbChatSQL`), la guerre de territoires
+(`ReverbTerritories`) et les comptes joueurs (`ReverbAccounts`).
 
 ---
 
-## 1. Backend — Cloudflare Worker (déjà déployé ✅)
-
-Le Worker est live. Pour mettre à jour :
+## 1. Backend — Cloudflare Worker
 
 ```bash
-npm run build:worker
-npx wrangler deploy --name reverb01
+npm run build
+npx wrangler deploy
 ```
 
-Pour configurer la clé Gemini :
-```bash
-npx wrangler secret put GEMINI_API_KEY --name reverb01
-```
+Le nom et les bindings sont définis dans `wrangler.toml` — pas besoin de
+`--name`, il doit correspondre à `vibe-reverb-api`.
 
 ---
 
@@ -56,5 +58,5 @@ Aucune variable requise côté Pages — le frontend appelle directement le Work
 
 ## Vérification
 
-- Worker health : `curl https://reverb01.mindsetredcom.workers.dev/`
-- Réponse attendue : `{"status":"REVERB CORE ONLINE","lisa":"v2.0-agentique"}`
+- Worker health : `curl https://vibe-reverb-api.mindsetredcom.workers.dev/`
+- Réponse attendue : `{"status":"REVERB CORE ONLINE",...}`
