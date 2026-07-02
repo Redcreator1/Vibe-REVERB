@@ -14,6 +14,7 @@ import OnboardingTutorial, { isOnboardingDone } from "./components/OnboardingTut
 import RevenueSimulator from "./components/RevenueSimulator";
 import TerritoryMap from "./components/TerritoryMap";
 import AccountPanel from "./components/AccountPanel";
+import { formatUSD, formatClockTime } from "./utils/format";
 import { motion, AnimatePresence } from "motion/react";
 import {
   TrendingUp, Mail, Cpu, Tv, Award, Clock, Flame, Server, Globe, Sun, Share2
@@ -88,7 +89,7 @@ export default function App() {
 
   const handleShare = async () => {
     const total = state.empire.cashClean + state.empire.cashDirty;
-    const text = `${t("share.text")}\n💰 Empire : $${total.toLocaleString()}\n🏢 ${state.empire.enterprises.filter(e => e.status === "active").length} entreprises actives\n🔗 vibe-reverb.pages.dev`;
+    const text = `${t("share.text")}\n💰 Empire : ${formatUSD(total)}\n🏢 ${state.empire.enterprises.filter(e => e.status === "active").length} entreprises actives\n🔗 vibe-reverb.pages.dev`;
     if (navigator.share) {
       await navigator.share({ title: "SYSTÈME REVERB", text, url: "https://vibe-reverb.pages.dev" }).catch(() => {});
     } else {
@@ -137,7 +138,7 @@ export default function App() {
       senderAvatar,
       subject,
       body,
-      time: "À l'instant",
+      time: formatClockTime(),
       decrypted: true,
       actionRequired: isActionable,
       actionLabel: "Réparer les dégâts ($25,000)",
@@ -189,7 +190,7 @@ export default function App() {
           id: `lisa_job_${Date.now()}`,
           role: "assistant",
           content: `⚡ RAPPORT TACTIQUE : Félicitations Chef ! Le coup "${job.title}" à ${job.location} s'est terminé sans anicroche. Les fonds de ${job.reward} sales ont été téléversés. Préparez le blanchiment dans le Malibu Club pour dissimuler la trace.`,
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          timestamp: formatClockTime()
         });
       } else {
         setState(prev => ({
@@ -206,7 +207,7 @@ export default function App() {
           id: `lisa_job_fail_${Date.now()}`,
           role: "assistant",
           content: `🚨 ALERTE CRITIQUE : Jason ou Lucia a été repéré par le shérif de Leonida pendant l'exécution de "${job.title}". J'ai dû blanchir $50,000 en urgence de caution. Faites profil bas, le niveau d'alerte a atteint son paroxysme !`,
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          timestamp: formatClockTime()
         });
       }
     }, 4500);
@@ -265,7 +266,7 @@ export default function App() {
               <div>
                 <span className="text-gray-500 text-[9px] sm:text-[10px] block">{t("header.resources")}</span>
                 <span className="text-white font-bold text-xs sm:text-sm">
-                  ${(state.empire.cashClean + state.empire.cashDirty).toLocaleString()}
+                  {formatUSD(state.empire.cashClean + state.empire.cashDirty)}
                 </span>
               </div>
               <div>

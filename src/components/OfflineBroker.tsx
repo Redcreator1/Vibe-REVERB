@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { GameState, Enterprise, Contract } from "../types";
 import { DollarSign, ShieldAlert, Key, TrendingUp, AlertTriangle, Shield, CheckCircle, RefreshCw, Layers } from "lucide-react";
+import { formatUSD } from "../utils/format";
 
 interface OfflineBrokerProps {
   gameState: GameState;
@@ -113,14 +114,14 @@ export default function OfflineBroker({
 
       setFeedback({
         type: "error",
-        msg: `🚨 ALERTE VCPD ! L'opération a été détectée. ${fine.toLocaleString()}$ ont été récupérés, mais la VCPD a intercepté le reste et dégradé la sécurité du ${selectedEnterprise.name}.`
+        msg: `🚨 ALERTE VCPD ! L'opération a été détectée. ${formatUSD(fine)} ont été récupérés, mais la VCPD a intercepté le reste et dégradé la sécurité du ${selectedEnterprise.name}.`
       });
 
       onAddMessage(
         "L.I.S.A.",
         "A",
         `Raid évité de justesse au ${selectedEnterprise.name}`,
-        `Alerte rouge. Une transaction suspecte de ${launderingAmount.toLocaleString()}$ a attiré l'attention de la brigade financière. Nous avons dû couper les serveurs en urgence. Améliorez la sécurité physique et informatique au plus vite !`,
+        `Alerte rouge. Une transaction suspecte de ${formatUSD(launderingAmount)} a attiré l'attention de la brigade financière. Nous avons dû couper les serveurs en urgence. Améliorez la sécurité physique et informatique au plus vite !`,
         true
       );
 
@@ -134,7 +135,7 @@ export default function OfflineBroker({
 
       setFeedback({
         type: "success",
-        msg: `💸 CONVERSION FINALISÉE ! ${cleanedNet.toLocaleString()}$ raffinés ont été transférés sur votre compte off-shore (Commission L.I.S.A. : 10%).`
+        msg: `💸 CONVERSION FINALISÉE ! ${formatUSD(cleanedNet)} raffinés ont été transférés sur votre compte off-shore (Commission L.I.S.A. : 10%).`
       });
     }
   };
@@ -181,7 +182,7 @@ export default function OfflineBroker({
 
     setFeedback({
       type: "success",
-      msg: `💰 Dividendes de ${collectedAmount.toLocaleString()}$ collectés avec succès depuis le ${ent.name}.`
+      msg: `💰 Dividendes de ${formatUSD(collectedAmount)} collectés avec succès depuis le ${ent.name}.`
     });
   };
 
@@ -191,7 +192,7 @@ export default function OfflineBroker({
     
     const cost = ent.securityLevel * 20000;
     if (cashClean < cost) {
-      setFeedback({ type: "error", msg: `Ressources raffinées insuffisantes pour améliorer la sécurité (Requis: ${cost.toLocaleString()}$)` });
+      setFeedback({ type: "error", msg: `Ressources raffinées insuffisantes pour améliorer la sécurité (Requis: ${formatUSD(cost)})` });
       return;
     }
 
@@ -215,7 +216,7 @@ export default function OfflineBroker({
 
     setFeedback({
       type: "success",
-      msg: `🛡️ Sécurité du ${ent.name} augmentée au niveau ${ent.securityLevel + 1} pour ${cost.toLocaleString()}$.`
+      msg: `🛡️ Sécurité du ${ent.name} augmentée au niveau ${ent.securityLevel + 1} pour ${formatUSD(cost)}.`
     });
   };
 
@@ -226,7 +227,7 @@ export default function OfflineBroker({
           <div>
             <span className="text-xs font-mono text-reverb-pink uppercase block tracking-wider">RESSOURCES BRUTES (STOCK RAW)</span>
             <span className="text-xl font-display font-bold text-white tracking-tight">
-              ${cashDirty.toLocaleString()}
+              {formatUSD(cashDirty)}
             </span>
           </div>
           <div className="p-2.5 bg-reverb-pink/10 rounded border border-reverb-pink/20">
@@ -238,7 +239,7 @@ export default function OfflineBroker({
           <div>
             <span className="text-xs font-mono text-reverb-cyan uppercase block tracking-wider">RESSOURCES RAFFINÉES (OFFSHORE)</span>
             <span className="text-xl font-display font-bold text-white tracking-tight">
-              ${cashClean.toLocaleString()}
+              {formatUSD(cashClean)}
             </span>
           </div>
           <div className="p-2.5 bg-reverb-cyan/10 rounded border border-reverb-cyan/20">
@@ -271,7 +272,7 @@ export default function OfflineBroker({
           <div className="space-y-2">
             <div className="flex justify-between font-mono text-xs">
               <span className="text-gray-400">MONTANT À TRANSFERER</span>
-              <span className="text-white font-bold">${launderingAmount.toLocaleString()}</span>
+              <span className="text-white font-bold">{formatUSD(launderingAmount)}</span>
             </div>
             <input
               type="range"
@@ -433,7 +434,7 @@ export default function OfflineBroker({
                       <div className="text-left font-mono">
                         <span className="text-[9px] text-gray-500 block">EN ATTENTE</span>
                         <span className="font-bold text-emerald-400 text-xs">
-                          ${ent.cleanCashPending.toLocaleString()}
+                          {formatUSD(ent.cleanCashPending)}
                         </span>
                       </div>
 
@@ -442,7 +443,7 @@ export default function OfflineBroker({
                           onClick={() => upgradeSecurity(ent.id)}
                           disabled={ent.securityLevel >= 5 || cashClean < upgradeCost}
                           className="px-2 py-1 bg-reverb-dark border border-reverb-cyan/20 hover:border-reverb-cyan text-reverb-cyan text-[10px] font-mono rounded transition disabled:opacity-40"
-                          title={`Améliorer la sécurité physique ($${upgradeCost.toLocaleString()})`}
+                          title={`Améliorer la sécurité physique (${formatUSD(upgradeCost)})`}
                         >
                           +🛡️ Sec
                         </button>

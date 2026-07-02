@@ -1,10 +1,12 @@
 import { useState, FormEvent } from "react";
 import { GameState, RPServerInstance, BotCitizen, Contract } from "../types";
-import { 
-  Server, Shield, Coins, Users, CloudRain, Cpu, Terminal, Sliders, 
-  Plus, Play, Flame, TrendingUp, PlusCircle, CheckCircle, RefreshCw, 
+import {
+  Server, Shield, Coins, Users, CloudRain, Cpu, Terminal, Sliders,
+  Plus, Play, Flame, TrendingUp, PlusCircle, CheckCircle, RefreshCw,
   UserPlus, X, HelpCircle, Activity, Globe
 } from "lucide-react";
+import { formatUSD } from "../utils/format";
+import { useSoundSystem } from "../hooks/useSound";
 
 interface SandboxRPProps {
   gameState: GameState;
@@ -96,6 +98,9 @@ export default function SandboxRP({
 
   const [isCreatingServer, setIsCreatingServer] = useState(false);
   const [isAddingBot, setIsAddingBot] = useState(false);
+  const [selectedBotId, setSelectedBotId] = useState<string>(PRESET_BOTS[0]?.id ?? "");
+  const [botActionCooldown, setBotActionCooldown] = useState(false);
+  const play = useSoundSystem();
 
   // Add message to sandbox terminal
   const logEvent = (text: string) => {
@@ -175,30 +180,59 @@ export default function SandboxRP({
   };
 
   // Simulate a random action by a random bot
+  // Chaque action a une vraie conséquence sur l'empire/télémétrie — plus de flavor text creux.
   const handleTriggerBotAction = () => {
-    if (bots.length === 0) return;
-    const randomBot = bots[Math.floor(Math.random() * bots.length)];
-    
-    const actions = [
-      `a mené une extraction rapide sur Little Havana et a récolté $${Math.floor(Math.random() * 8000) + 1500} de ressources brutes.`,
-      `a été repéré par un hélicoptère de patrouille dans le secteur nord.`,
-      `a transféré 2.5 R_COIN à un contact anonyme sur le réseau cryptographique.`,
-      `a déclenché une alarme de sécurité dans l'un de vos laboratoires de drogue.`,
-      `propose de convertir une partie de vos ressources brutes en échange d'une commission de 15%.`,
-      `a provoqué un accident de voiture spectaculaire avec le FBI en plein centre-ville.`
+    if (bots.length === 0 || botActionCooldown) return;
+    const actingBot = bots.find(b => b.id === selectedBotId) ?? bots[Math.floor(Math.random() * bots.length)];
+
+    // Chaque action calcule son montant une seule fois et le réutilise pour le texte ET l'effet,
+    // pour que le log affiché corresponde exactement à ce qui a été appliqué.
+    const outcomes: (() => string)[] = [
+      () => {
+        const gain = Math.floor(Math.random() * 8000) + 1500;
+        onUpdateEmpire({ ...gameState.empire, cashDirty: gameState.empire.cashDirty + gain });
+        onUpdateTelemetry({ ...gameState.telemetry, searchLevel: Math.min(gameState.telemetry.searchLevel + 1, 5) });
+        return `a mené une extraction rapide sur Little Havana et a récolté ${formatUSD(gain)} de ressources brutes.`;
+      },
+      () => {
+        onUpdateTelemetry({ ...gameState.telemetry, searchLevel: Math.min(gameState.telemetry.searchLevel + 1, 5) });
+        return `a été repéré par un hélicoptère de patrouille dans le secteur nord — niveau d'alerte en hausse.`;
+      },
+      () => {
+        const gain = +(Math.random() * 2.5 + 0.5).toFixed(2);
+        onUpdateEmpire({ ...gameState.empire, cryptoBalance: +(gameState.empire.cryptoBalance + gain).toFixed(2) });
+        return `a transféré ${gain} R_COIN à un contact anonyme sur le réseau cryptographique.`;
+      },
+      () => {
+        const ents = gameState.empire.enterprises;
+        if (ents.length === 0) return `n'a trouvé aucun établissement à cibler cette fois.`;
+        const target = ents[Math.floor(Math.random() * ents.length)];
+        onUpdateEmpire({
+          ...gameState.empire,
+          enterprises: ents.map(e => e.id === target.id ? { ...e, securityLevel: Math.max(e.securityLevel - 1, 1) } : e),
+        });
+        return `a déclenché une alarme de sécurité dans ${target.name} — sécurité dégradée d'un niveau.`;
+      },
+      () => {
+        const fee = Math.floor(Math.random() * 4000) + 500;
+        if (gameState.empire.cashDirty < fee) return `a proposé une conversion, mais vos ressources brutes sont insuffisantes.`;
+        onUpdateEmpire({ ...gameState.empire, cashDirty: gameState.empire.cashDirty - fee, cashClean: gameState.empire.cashClean + Math.round(fee * 0.85) });
+        return `a converti ${formatUSD(fee)} de ressources brutes en échange d'une commission de 15%.`;
+      },
+      () => {
+        const fine = Math.floor(Math.random() * 6000) + 2000;
+        onUpdateEmpire({ ...gameState.empire, cashClean: Math.max(gameState.empire.cashClean - fine, 0) });
+        onUpdateTelemetry({ ...gameState.telemetry, searchLevel: Math.min(gameState.telemetry.searchLevel + 2, 5) });
+        return `a provoqué un accident spectaculaire avec le FBI — caution d'urgence de ${formatUSD(fine)} payée.`;
+      },
     ];
 
-    const chosenAction = actions[Math.floor(Math.random() * actions.length)];
-    logEvent(`[BOT] @${randomBot.name} ${chosenAction}`);
+    const resultText = outcomes[Math.floor(Math.random() * outcomes.length)]();
+    logEvent(`[BOT] @${actingBot.name} ${resultText}`);
+    play("click");
 
-    // Some actions have systemic consequences
-    if (chosenAction.includes("extraction rapide") || chosenAction.includes("accident")) {
-      // Increase search level dynamically
-      onUpdateTelemetry({
-        ...gameState.telemetry,
-        searchLevel: Math.min(gameState.telemetry.searchLevel + 1, 5)
-      });
-    }
+    setBotActionCooldown(true);
+    setTimeout(() => setBotActionCooldown(false), 4000);
   };
 
   // Core Simulation Event Injectors
@@ -566,16 +600,30 @@ export default function SandboxRP({
 
         {/* Live Terminal Output Console */}
         <div className="bg-reverb-card border border-gray-800 rounded-lg p-5 flex-grow flex flex-col justify-between min-h-[220px]">
-          <div className="flex justify-between items-center border-b border-gray-900 pb-2.5">
+          <div className="flex justify-between items-center border-b border-gray-900 pb-2.5 gap-2 flex-wrap">
             <h3 className="font-display font-semibold text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
               <Terminal className="w-4 h-4 text-reverb-cyan" /> Sandbox Live Console
             </h3>
-            <button
-              onClick={handleTriggerBotAction}
-              className="bg-reverb-cyan/10 border border-reverb-cyan/35 text-reverb-cyan hover:bg-reverb-cyan hover:text-black transition px-2.5 py-1 rounded text-[10px] font-mono flex items-center gap-1"
-            >
-              <RefreshCw className="w-3 h-3" /> AGIR BOT
-            </button>
+            <div className="flex items-center gap-1.5">
+              <select
+                value={selectedBotId}
+                onChange={(e) => setSelectedBotId(e.target.value)}
+                className="bg-reverb-dark border border-gray-800 rounded text-[10px] font-mono text-gray-300 px-1.5 py-1 outline-none focus:border-reverb-cyan/50 max-w-[110px]"
+                title="Choisir le bot à activer"
+              >
+                {bots.map(b => (
+                  <option key={b.id} value={b.id}>@{b.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleTriggerBotAction}
+                disabled={botActionCooldown || bots.length === 0}
+                className="bg-reverb-cyan/10 border border-reverb-cyan/35 text-reverb-cyan hover:bg-reverb-cyan hover:text-black transition px-2.5 py-1 rounded text-[10px] font-mono flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-reverb-cyan/10 disabled:hover:text-reverb-cyan"
+              >
+                <RefreshCw className={`w-3 h-3 ${botActionCooldown ? "animate-spin" : ""}`} />
+                {botActionCooldown ? "..." : "AGIR BOT"}
+              </button>
+            </div>
           </div>
 
           {/* Console Output */}
