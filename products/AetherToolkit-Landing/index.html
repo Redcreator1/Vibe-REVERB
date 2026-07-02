@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AetherStack AI Toolkit — Coming Soon</title>
+    <meta name="description" content="Premium AI development toolkits and resources for building production-grade AI applications. Launching summer 2026 — join the waitlist." />
+    <meta property="og:title" content="AetherStack AI Toolkit — Coming Soon" />
+    <meta property="og:description" content="Premium AI development toolkits for builders. Join the waitlist." />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0; padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #07080f;
+        color: #e8ecff;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: #93c5fd; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 80px 24px;
+      }
+      .badge {
+        display: inline-block;
+        padding: 6px 14px;
+        border-radius: 999px;
+        background: rgba(74, 222, 128, 0.12);
+        border: 1px solid rgba(74, 222, 128, 0.35);
+        color: #86efac;
+        font-size: 12px;
+        font-weight: 600;
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: 0.08em;
+        margin-bottom: 24px;
+      }
+      .brand {
+        font-size: 14px;
+        font-weight: 600;
+        color: rgba(232, 236, 255, 0.5);
+        margin-bottom: 10px;
+        font-family: 'JetBrains Mono', monospace;
+      }
+      .brand a { color: inherit; }
+      h1 {
+        font-size: clamp(2.4rem, 5vw, 3.6rem);
+        font-weight: 800;
+        line-height: 1.05;
+        letter-spacing: -0.025em;
+        margin: 0 0 22px;
+      }
+      h1 .accent {
+        background: linear-gradient(135deg, #a5b4fc 0%, #38bdf8 60%, #4ade80 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .lead {
+        font-size: 1.15rem;
+        color: rgba(232, 236, 255, 0.78);
+        margin: 0 0 40px;
+        max-width: 580px;
+      }
+      .preview {
+        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 14px;
+        padding: 24px;
+        margin: 0 0 40px;
+      }
+      .preview h2 {
+        font-size: 14px;
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(199, 210, 254, 0.7);
+        margin: 0 0 18px;
+      }
+      .preview ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .preview li {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        font-size: 15px;
+        color: rgba(232, 236, 255, 0.85);
+      }
+      .preview li::before {
+        content: '⬢';
+        color: #38bdf8;
+        font-size: 18px;
+      }
+      .preview li .meta {
+        color: rgba(148, 163, 184, 0.6);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 13px;
+        margin-left: auto;
+      }
+      .waitlist {
+        background: linear-gradient(180deg, rgba(99, 102, 241, 0.14) 0%, rgba(15, 23, 42, 0.55) 100%);
+        border: 1px solid rgba(99, 102, 241, 0.45);
+        border-radius: 18px;
+        padding: 28px;
+      }
+      .waitlist h3 {
+        font-size: 1.3rem;
+        margin: 0 0 8px;
+      }
+      .waitlist p {
+        color: rgba(232, 236, 255, 0.72);
+        margin: 0 0 20px;
+        font-size: 15px;
+      }
+      .waitlist form {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .waitlist input[type=email] {
+        flex: 1;
+        min-width: 240px;
+        padding: 13px 16px;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: rgba(2, 6, 23, 0.5);
+        color: #e8ecff;
+        font-size: 15px;
+        font-family: inherit;
+      }
+      .waitlist input[type=email]:focus {
+        outline: none;
+        border-color: #38bdf8;
+      }
+      .waitlist button {
+        padding: 13px 22px;
+        border-radius: 10px;
+        border: 0;
+        background: linear-gradient(135deg, #a5b4fc, #38bdf8);
+        color: #0b1020;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .waitlist button:hover { filter: brightness(1.05); }
+      .waitlist .legal {
+        font-size: 12px;
+        color: rgba(148, 163, 184, 0.6);
+        margin: 14px 0 0;
+      }
+      .success-msg {
+        display: none;
+        padding: 14px 16px;
+        background: rgba(74, 222, 128, 0.12);
+        border: 1px solid rgba(74, 222, 128, 0.35);
+        border-radius: 10px;
+        color: #86efac;
+        font-size: 14px;
+        margin-top: 12px;
+      }
+      .success-msg.visible { display: block; }
+      .footer {
+        margin-top: 80px;
+        padding-top: 30px;
+        border-top: 1px solid rgba(148, 163, 184, 0.1);
+        color: rgba(148, 163, 184, 0.6);
+        font-size: 13px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        justify-content: space-between;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <p class="brand"><a href="https://aether-swarm.pages.dev">AetherStack</a> / AI Toolkit</p>
+      <span class="badge">// coming soon · summer 2026</span>
+      <h1>Premium AI toolkits<br /><span class="accent">built for builders.</span></h1>
+      <p class="lead">
+        Production-ready toolkits for AI agents, RAG pipelines, prompt engineering, LangChain workflows, vector databases, and LLM cost optimization. Built by practitioners, for practitioners.
+      </p>
+
+      <div class="preview">
+        <h2>What's launching</h2>
+        <ul>
+          <li>AgentFlow Starter Kit <span class="meta">45€</span></li>
+          <li>RAG Implementation Blueprint <span class="meta">65€</span></li>
+          <li>Prompt Engineering Masterclass <span class="meta">39€</span></li>
+          <li>LangChain Agent Cookbook <span class="meta">59€</span></li>
+          <li>LLM Cost Optimization Toolkit <span class="meta">79€</span></li>
+          <li>SaaS Boilerplate (with AI) <span class="meta">95€</span></li>
+          <li>+ 4 more toolkits <span class="meta">soon</span></li>
+        </ul>
+      </div>
+
+      <div class="waitlist">
+        <h3>Join the waitlist</h3>
+        <p>Get early-access pricing (40% off) and be notified the day the first toolkit drops. No spam, just one launch email.</p>
+        <form id="waitlist-form" action="https://formspree.io/f/xzdljqvy" method="POST">
+          <input type="email" name="email" placeholder="ton@email.com" required autocomplete="email" />
+          <button type="submit" id="submit-btn">Notify me</button>
+        </form>
+        <div class="success-msg" id="success">✓ Merci — tu seras notifié au lancement.</div>
+        <div class="success-msg" id="error-msg" style="background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.35);color:#fca5a5;">✗ Erreur — réessaie ou écris à mindset22633@gmail.com</div>
+        <p class="legal">Ton email est stocké chez AetherStack uniquement pour l'annonce du lancement. Aucun partage, désinscription en 1 clic.</p>
+      </div>
+
+      <div class="footer">
+        <div>© 2026 <strong>AetherStack</strong> · construit en France</div>
+        <div>
+          <a href="https://aether-swarm.pages.dev">Aether Swarm</a> ·
+          <a href="mailto:mindset22633@gmail.com">mindset22633@gmail.com</a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.getElementById('waitlist-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const form = e.target;
+        const btn = document.getElementById('submit-btn');
+        const success = document.getElementById('success');
+        const error = document.getElementById('error-msg');
+        success.classList.remove('visible');
+        error.classList.remove('visible');
+        btn.disabled = true;
+        btn.textContent = 'Envoi…';
+        try {
+          const res = await fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'Accept': 'application/json' }
+          });
+          if (res.ok) {
+            success.classList.add('visible');
+            form.reset();
+          } else {
+            error.classList.add('visible');
+          }
+        } catch (_) {
+          error.classList.add('visible');
+        }
+        btn.disabled = false;
+        btn.textContent = 'Notify me';
+      });
+    </script>
+  </body>
+</html>
