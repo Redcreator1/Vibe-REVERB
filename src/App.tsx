@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { GameState, Telemetry, ChatMessage, Contract, NPCMessage } from "./types";
 import { INITIAL_STATE } from "./data/mockData";
 import { usePersistedState } from "./hooks/usePersistedState";
@@ -15,6 +15,7 @@ import RevenueSimulator from "./components/RevenueSimulator";
 import TerritoryMap from "./components/TerritoryMap";
 import AccountPanel from "./components/AccountPanel";
 import { formatUSD, formatClockTime } from "./utils/format";
+import { generateContract, generateInboxMessage } from "./data/generators";
 import { motion, AnimatePresence } from "motion/react";
 import {
   TrendingUp, Mail, Cpu, Tv, Award, Clock, Flame, Server, Globe, Sun, Share2
@@ -120,7 +121,12 @@ export default function App() {
     setState(prev => ({ ...prev, chatHistory: [...prev.chatHistory, msg] }));
 
   const addContract = (contract: Contract) =>
-    setState(prev => ({ ...prev, contracts: [contract, ...prev.contracts] }));
+    setState(prev => ({ ...prev, contracts: [contract, ...prev.contracts].slice(0, 9) }));
+
+  const generateNewMission = () => {
+    addContract(generateContract());
+    play("click");
+  };
 
   const updateMessages = (updatedMessages: NPCMessage[]) =>
     setState(prev => ({ ...prev, messages: updatedMessages }));
@@ -144,9 +150,24 @@ export default function App() {
       actionLabel: "Réparer les dégâts ($25,000)",
       rewardAmount: "Sécurité boostée"
     };
-    setState(prev => ({ ...prev, messages: [newMsg, ...prev.messages] }));
+    setState(prev => ({ ...prev, messages: [newMsg, ...prev.messages].slice(0, 30) }));
     play("message");
   };
+
+  // Le réseau REVERB reste vivant : nouveaux messages qui arrivent au fil du temps,
+  // plutôt qu'une boîte de réception figée avec seulement 3 messages statiques.
+  const addInboxMessageRef = useRef(addInboxMessage);
+  useEffect(() => { addInboxMessageRef.current = addInboxMessage; });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (Math.random() < 0.4) {
+        const msg = generateInboxMessage();
+        addInboxMessageRef.current(msg.sender, msg.senderAvatar, msg.subject, msg.body, false);
+      }
+    }, 45000);
+    return () => clearInterval(interval);
+  }, []);
 
   const executeJobSimulation = (job: Contract) => {
     if (missionStatus === "running") return;
@@ -484,12 +505,21 @@ export default function App() {
             <h2 className="font-display font-semibold text-white text-base flex items-center gap-2">
               <Award className="w-4.5 h-4.5 text-reverb-pink" /> {t("contracts.title")}
             </h2>
-            <span className="hidden sm:block text-xs font-mono text-gray-500">REVERB CONTRACTS BOARD</span>
+            <div className="flex items-center gap-3">
+              <span className="hidden sm:block text-xs font-mono text-gray-500">REVERB CONTRACTS BOARD</span>
+              <button
+                onClick={generateNewMission}
+                className="text-[10px] font-mono font-bold bg-reverb-pink/10 hover:bg-reverb-pink/20 border border-reverb-pink/30 text-reverb-pink px-2.5 py-1 rounded uppercase tracking-wider transition"
+              >
+                + {t("contracts.newMission")}
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {state.contracts.map((job) => (
               <motion.div
-                key={job.title}
+                key={job.id}
+                layout
                 whileHover={{ scale: 1.02, borderColor: "rgba(255,42,116,0.4)" }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 className="bg-reverb-dark/95 border border-gray-800/80 p-4 rounded flex flex-col justify-between space-y-4"

@@ -257,6 +257,7 @@ export default function SandboxRP({
     // Create an extreme premium contract for this war!
     const rewardAmt = Math.floor(250000 * activeServer.economyMultiplier);
     const warContract: Contract = {
+      id: `contract_war_${Date.now()}`,
       title: `💥 Carnage à Starfish Island (${activeServer.name})`,
       client: "Syndicat REVERB Sandbox",
       reward: `$${rewardAmt.toLocaleString()}`,
@@ -281,6 +282,7 @@ export default function SandboxRP({
     
     const rewardAmt = Math.floor(120000 * activeServer.economyMultiplier);
     const dropContract: Contract = {
+      id: `contract_drop_${Date.now()}`,
       title: `📦 Récupération Airdrop: Cargo ${Math.floor(Math.random() * 900) + 100}`,
       client: "Cargo Tracker Alpha",
       reward: `$${rewardAmt.toLocaleString()}`,
