@@ -30,6 +30,7 @@ export interface Enterprise {
 }
 
 export interface Contract {
+  id: string;
   title: string;
   client: string;
   reward: string;

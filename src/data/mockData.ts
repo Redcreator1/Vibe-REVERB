@@ -32,6 +32,7 @@ export const RADIO_STATIONS = [
 
 export const INITIAL_CONTRACTS: Contract[] = [
   {
+    id: "contract_1",
     title: "Le Casse de Port Gellhorn",
     client: "Jason",
     reward: "$120,000",
@@ -41,6 +42,7 @@ export const INITIAL_CONTRACTS: Contract[] = [
     location: "Port Gellhorn"
   },
   {
+    id: "contract_2",
     title: "Hack de la VCPD",
     client: "L.I.S.A.",
     reward: "$85,000",
@@ -50,6 +52,7 @@ export const INITIAL_CONTRACTS: Contract[] = [
     location: "Downtown Vice"
   },
   {
+    id: "contract_3",
     title: "Livraison Rapide",
     client: "Lucia",
     reward: "$45,000",
